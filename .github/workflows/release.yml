@@ -1,12 +1,12 @@
 name: Release
 
-permissions:
-  contents: write
-
 on:
   push:
     tags:
       - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   release:
@@ -39,10 +39,10 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build Release AAR
+      - name: Build Release AAR and APK
         run: |
-          ./gradlew clean :native-analytics-engine:assembleRelease --stacktrace || {
-            echo "Module task :native-analytics-engine:assembleRelease failed or not found. Checking available tasks..."
+          ./gradlew clean :native-storage-engine:assembleRelease :app:assembleRelease --stacktrace || ./gradlew clean :native-storage-engine:assembleRelease --stacktrace || {
+            echo "Module task :native-storage-engine:assembleRelease failed or not found. Checking available tasks..."
             if ./gradlew tasks --all 2>/dev/null | grep -E "\bassembleRelease\b"; then
               ./gradlew clean assembleRelease --stacktrace
             else
@@ -54,7 +54,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            native-analytics-engine/build/outputs/aar/*.aar
+            native-storage-engine/build/outputs/aar/*.aar
             app/build/outputs/apk/release/*.apk
+            **/build/outputs/aar/*.aar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

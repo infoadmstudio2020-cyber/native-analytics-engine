@@ -1,13 +1,13 @@
 ---
 name: Bug report
-about: Create a report to help us improve NativeAnalyticsEngine
+about: Report a bug in NativeStorageEngine
 title: '[BUG] '
 labels: bug
 assignees: ''
 ---
 
 **Describe the bug**
-A clear description of the bug.
+A clear and concise description of the bug.
 
 **To Reproduce**
 Steps to reproduce the behavior.
@@ -15,9 +15,9 @@ Steps to reproduce the behavior.
 **Expected behavior**
 What you expected to happen.
 
-**Android version / API level:**
-
-**Library version:**
+**Environment**
+- Library version: 1.0.1
+- Android version:
+- Device:
 
 **Additional context**
-Add any other context here.

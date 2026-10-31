@@ -5,7 +5,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher"
-        android:theme="@style/Theme.NativeAnalyticsEngine">
+        android:theme="@style/Theme.NativeStorageEngine">
         <activity
             android:name=".MainActivity"
             android:exported="true">

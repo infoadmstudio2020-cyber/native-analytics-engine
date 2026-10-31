@@ -42,8 +42,8 @@ jobs:
 
       - name: Build with Gradle
         run: |
-          ./gradlew clean :native-analytics-engine:assembleRelease :app:assembleDebug --stacktrace || ./gradlew clean :native-analytics-engine:assembleRelease --stacktrace || {
-            echo "Module task :native-analytics-engine:assembleRelease failed or not found. Checking available tasks..."
+          ./gradlew clean :native-storage-engine:assembleRelease :app:assembleDebug --stacktrace || ./gradlew clean :native-storage-engine:assembleRelease --stacktrace || {
+            echo "Module task :native-storage-engine:assembleRelease failed or not found. Checking available tasks..."
             if ./gradlew tasks --all 2>/dev/null | grep -E "\bassembleRelease\b"; then
               ./gradlew clean assembleRelease --stacktrace
             else
@@ -53,4 +53,4 @@ jobs:
 
       - name: Run unit tests
         run: |
-          ./gradlew :native-analytics-engine:test --stacktrace || ./gradlew test --stacktrace || echo "Tests passed or no tests defined."
+          ./gradlew :native-storage-engine:test --stacktrace || ./gradlew test --stacktrace || echo "Tests passed or no tests defined."

@@ -11,11 +11,10 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        mavenLocal()
         maven { url 'https://jitpack.io' }
     }
 }
 
-rootProject.name = 'NativeAnalyticsEngine'
-include ':native-analytics-engine'
+rootProject.name = 'NativeStorageEngine'
+include ':native-storage-engine'
 include ':app'

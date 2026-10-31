@@ -1,6 +1,6 @@
-# NativeAnalyticsEngine API Reference
+# NativeStorageEngine API Reference
 
-## NativeAnalyticsEngine
+## NativeStorageEngine
 
 Main entry point for the library.
 
@@ -9,7 +9,7 @@ Main entry point for the library.
 #### `static getInstance()`
 Returns the singleton instance.
 
-#### `init(Context context, NativeAnalyticsEngineConfig config)`
+#### `init(Context context, NativeStorageEngineConfig config)`
 Initializes the library. Must be called before any other method.
 
 **Parameters:**
@@ -20,25 +20,25 @@ Initializes the library. Must be called before any other method.
 Returns `true` if the library has been initialized.
 
 #### `getConfig()`
-Returns the current `NativeAnalyticsEngineConfig` or null.
+Returns the current `NativeStorageEngineConfig` or null.
 
 #### `release()`
 Releases all resources. After calling this, `getInstance()` returns a fresh instance.
 
 ---
 
-## NativeAnalyticsEngineConfig.Builder
+## NativeStorageEngineConfig.Builder
 
 | Method | Default | Description |
 |--------|---------|-------------|
 | `debugEnabled(boolean)` | `false` | Enable debug logging |
-| `tag(String)` | `"NativeAnalyticsEngine"` | Log tag |
+| `tag(String)` | `"NativeStorageEngine"` | Log tag |
 | `timeout(int)` | `30000` | Timeout in milliseconds |
 | `build()` | — | Create the config |
 
 ---
 
-## NativeAnalyticsEngineResult<T>
+## NativeStorageEngineResult<T>
 
 | Method | Description |
 |--------|-------------|

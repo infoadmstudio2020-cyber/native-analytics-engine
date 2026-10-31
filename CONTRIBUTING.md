@@ -1,4 +1,4 @@
-# Contributing to NativeAnalyticsEngine
+# Contributing to NativeStorageEngine
 
 Thank you for your interest in contributing!
 

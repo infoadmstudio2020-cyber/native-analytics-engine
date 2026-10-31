@@ -1,0 +1,2 @@
+-keep public class com.roni.library.storage.** { public *; }
+-keepclassmembers class com.roni.library.storage.** { public *; }
