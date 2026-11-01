@@ -3,7 +3,7 @@
 All notable changes to NativeAnalyticsEngine are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com).
 
-## [1.0.2] — 2026-11-01
+## [1.0.3] — 2026-11-01
 
 ### Changed
 - Decoupled internal storage implementation: completely removed duplicate `native-storage-engine` code and packages from the Analytics project.

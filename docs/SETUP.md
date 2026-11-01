@@ -16,7 +16,7 @@
 ## Publishing to JitPack
 
 1. Push your code to GitHub
-2. Create a release tag: `git tag v1.0.2 && git push --tags`
+2. Create a release tag: `git tag v1.0.3 && git push --tags`
 3. Visit [jitpack.io](https://jitpack.io) and look up your repo
 4. JitPack builds automatically on first use
 

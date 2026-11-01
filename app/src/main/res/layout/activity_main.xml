@@ -23,7 +23,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="v1.0.2 • Layer 2 Domain Engine • Production Ready"
+            android:text="v1.0.3 • Layer 2 Domain Engine • Production Ready"
             android:textSize="12sp"
             android:textColor="#94A3B8"
             android:paddingBottom="12dp" />
