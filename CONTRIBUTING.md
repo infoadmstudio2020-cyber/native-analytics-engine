@@ -1,22 +1,24 @@
 # Contributing to NativeAnalyticsEngine
 
-Thank you for considering contributing to NativeAnalyticsEngine!
+Thank you for your interest in contributing!
 
-## How to Contribute
+## Getting Started
 
-1. Fork the repository: https://github.com/infoadmstudio2020-cyber/native-analytics-engine
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Make your changes and add tests
-4. Commit: `git commit -m 'feat: add my feature'`
-5. Push: `git push origin feature/my-feature`
-6. Open a Pull Request
+1. Fork the repository
+2. Create a branch: `git checkout -b feature/my-feature`
+3. Make your changes
+4. Add tests for your changes
+5. Run tests: `./gradlew test`
+6. Commit: `git commit -m 'Add my feature'`
+7. Push: `git push origin feature/my-feature`
+8. Open a Pull Request
 
 ## Code Style
 
-- Follow Google Java Style Guide
-- Use meaningful variable names
-- Add Javadoc for public APIs
+- Follow existing code patterns
+- Add JavaDoc to public methods
+- Write unit tests for new functionality
 
 ## Reporting Bugs
 
-Open an issue at https://github.com/infoadmstudio2020-cyber/native-analytics-engine/issues
+Use the GitHub issue tracker with the bug report template.

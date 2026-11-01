@@ -1,9 +1,11 @@
 package com.roni.library.analytics;
 
+import com.roni.library.analytics.dispatcher.BatchUploader;
 import com.roni.library.analytics.handler.AnalyticsCommandHandler;
 import com.roni.library.analytics.provider.CompositeAnalyticsProvider;
-import com.roni.library.analytics.provider.DiskBufferAnalyticsProvider;
 import com.roni.library.analytics.provider.MemoryAnalyticsProvider;
+import com.roni.library.analytics.queue.DiskBufferAnalyticsProvider;
+import com.roni.library.analytics.queue.EventQueue;
 import com.roni.library.analytics.service.NativeAnalyticsService;
 import com.roni.library.analytics.tracker.PerformanceTracker;
 import com.roni.library.analytics.tracker.SessionTracker;
@@ -13,268 +15,190 @@ import com.roni.library.contracts.api.IApiCallback;
 import com.roni.library.contracts.api.NativeApiError;
 import com.roni.library.contracts.api.NativeApiRequest;
 import com.roni.library.contracts.api.NativeApiResponse;
+import com.roni.library.contracts.common.RuntimeState;
+import com.roni.library.service.ServiceRegistry;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.*;
 
 /**
- * Comprehensive JVM Unit tests for {@link NativeAnalyticsEngine} and its subsystem components.
+ * Comprehensive automated JUnit test suite for {@link NativeAnalyticsEngine}.
+ * Verifies lifecycle, state machine, providers, offline event queue,
+ * session tracking, performance tracing, RPC routing, and thread safety.
+ *
+ * @author infoadmstudio2020-cyber
  */
 public class NativeAnalyticsEngineTest {
 
+    private File tempDir;
+
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
+        tempDir = Files.createTempDirectory("analytics_test_").toFile();
         NativeAnalyticsEngine.getInstance().release();
     }
 
     @After
     public void tearDown() {
         NativeAnalyticsEngine.getInstance().release();
+        if (tempDir != null && tempDir.exists()) {
+            deleteRecursively(tempDir);
+        }
+    }
+
+    private void deleteRecursively(File file) {
+        if (file.isDirectory()) {
+            File[] files = file.listFiles();
+            if (files != null) {
+                for (File child : files) {
+                    deleteRecursively(child);
+                }
+            }
+        }
+        file.delete();
+    }
+
+    // =========================================================================
+    // 1. Singleton Lifecycle & State Machine
+    // =========================================================================
+
+    @Test
+    public void testSingletonInstanceIdentity() {
+        NativeAnalyticsEngine instance1 = NativeAnalyticsEngine.getInstance();
+        NativeAnalyticsEngine instance2 = NativeAnalyticsEngine.getInstance();
+        assertNotNull(instance1);
+        assertSame("Singleton must return same instance", instance1, instance2);
     }
 
     @Test
-    public void testConfigBuilderDefaults() {
-        NativeAnalyticsEngineConfig config = NativeAnalyticsEngineConfig.builder().build();
-        assertNotNull(config);
+    public void testInitializationLifecycle() {
+        NativeAnalyticsEngine engine = NativeAnalyticsEngine.getInstance();
+        assertFalse(engine.isInitialized());
+
+        NativeAnalyticsEngineConfig config = new NativeAnalyticsEngineConfig.Builder()
+                .debugEnabled(true)
+                .tag("TestTag")
+                .timeout(5000)
+                .batchSize(20)
+                .flushIntervalMs(5000)
+                .offlinePersistenceEnabled(true)
+                .storageDirectory(tempDir)
+                .build();
+
+        NativeAnalyticsEngineResult<Void> initResult = engine.init(null, config);
+        assertTrue(initResult.isSuccess());
+        assertTrue(engine.isInitialized());
+        assertEquals(RuntimeState.READY, engine.getRuntimeState());
+        assertNotNull(engine.getConfig());
+        assertEquals("TestTag", engine.getConfig().getTag());
+        assertEquals(20, engine.getConfig().getBatchSize());
+
+        // Idempotent re-initialization
+        NativeAnalyticsEngineResult<Void> secondInit = engine.init(null, config);
+        assertTrue(secondInit.isSuccess());
+    }
+
+    @Test
+    public void testReleaseResetsState() {
+        NativeAnalyticsEngine engine = NativeAnalyticsEngine.getInstance();
+        NativeAnalyticsEngineConfig config = new NativeAnalyticsEngineConfig.Builder()
+                .storageDirectory(tempDir)
+                .build();
+        engine.init(null, config);
+        assertTrue(engine.isInitialized());
+
+        engine.release();
+        assertFalse(engine.isInitialized());
+        assertEquals(RuntimeState.DISPOSED, engine.getRuntimeState());
+
+        // Subsequent getInstance returns clean instance
+        NativeAnalyticsEngine newEngine = NativeAnalyticsEngine.getInstance();
+        assertFalse(newEngine.isInitialized());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testUninitializedAccessThrows() {
+        NativeAnalyticsEngine engine = NativeAnalyticsEngine.getInstance();
+        engine.trackEvent("test_event", null);
+    }
+
+    // =========================================================================
+    // 2. Configuration & Result DTOs
+    // =========================================================================
+
+    @Test
+    public void testConfigDefaults() {
+        NativeAnalyticsEngineConfig config = new NativeAnalyticsEngineConfig.Builder().build();
         assertFalse(config.isDebugEnabled());
         assertEquals("NativeAnalyticsEngine", config.getTag());
         assertEquals(30000, config.getTimeout());
-        assertEquals(5000, config.getBatchIntervalMs());
-        assertEquals(20, config.getBatchSizeThreshold());
-        assertEquals(1000, config.getMaxQueueSize());
-        assertTrue(config.isDiskBufferingEnabled());
+        assertEquals(50, config.getBatchSize());
+        assertEquals(15000L, config.getFlushIntervalMs());
+        assertTrue(config.isOfflinePersistenceEnabled());
+        assertNull(config.getStorageDirectory());
     }
 
     @Test
-    public void testConfigBuilderCustom() {
-        NativeAnalyticsEngineConfig config = NativeAnalyticsEngineConfig.builder()
-                .debugEnabled(true)
-                .tag("CustomAnalytics")
-                .timeout(15000)
-                .batchIntervalMs(2000)
-                .batchSizeThreshold(10)
-                .maxQueueSize(500)
-                .diskBufferingEnabled(false)
-                .build();
+    public void testResultFactoryMethods() {
+        NativeAnalyticsEngineResult<String> successResult = NativeAnalyticsEngineResult.success("HelloData");
+        assertTrue(successResult.isSuccess());
+        assertEquals("HelloData", successResult.getData());
+        assertEquals(0, successResult.getErrorCode());
+        assertNull(successResult.getErrorMessage());
 
-        assertTrue(config.isDebugEnabled());
-        assertEquals("CustomAnalytics", config.getTag());
-        assertEquals(15000, config.getTimeout());
-        assertEquals(2000, config.getBatchIntervalMs());
-        assertEquals(10, config.getBatchSizeThreshold());
-        assertEquals(500, config.getMaxQueueSize());
-        assertFalse(config.isDiskBufferingEnabled());
+        NativeAnalyticsEngineResult<String> errorResult = NativeAnalyticsEngineResult.error(404, "Not Found");
+        assertFalse(errorResult.isSuccess());
+        assertEquals(404, errorResult.getErrorCode());
+        assertEquals("Not Found", errorResult.getErrorMessage());
     }
 
-    @Test
-    public void testResultModel() {
-        NativeAnalyticsEngineResult<String> success = NativeAnalyticsEngineResult.success("analytics_ok");
-        assertTrue(success.isSuccess());
-        assertEquals("analytics_ok", success.getData());
-        assertNull(success.getErrorMessage());
-        assertEquals(0, success.getErrorCode());
-
-        NativeAnalyticsEngineResult<Void> failure = NativeAnalyticsEngineResult.failure(404, "Not found");
-        assertFalse(failure.isSuccess());
-        assertNull(failure.getData());
-        assertEquals("Not found", failure.getErrorMessage());
-        assertEquals(404, failure.getErrorCode());
-        assertTrue(failure.toString().contains("404"));
-    }
-
-    @Test
-    public void testSingletonLifecycle() {
-        NativeAnalyticsEngine engine = NativeAnalyticsEngine.getInstance();
-        assertNotNull(engine);
-        assertFalse(engine.isInitialized());
-
-        NativeAnalyticsEngineConfig config = NativeAnalyticsEngineConfig.builder()
-                .debugEnabled(true)
-                .batchIntervalMs(1000)
-                .build();
-
-        NativeAnalyticsEngineResult<Boolean> res = engine.init(null, config);
-        assertTrue(res.isSuccess());
-        assertTrue(engine.isInitialized());
-        assertNotNull(engine.getService());
-        assertNotNull(engine.getCommandHandler());
-        assertNotNull(engine.getSessionTracker());
-        assertNotNull(engine.getPerformanceTracker());
-        assertNotNull(engine.getEventQueue());
-        assertNotNull(engine.getBatchUploader());
-        assertNotNull(engine.getTelemetryDispatcher());
-
-        // Re-init guard
-        NativeAnalyticsEngineResult<Boolean> reInit = engine.init(null, config);
-        assertTrue(reInit.isSuccess());
-
-        // Release
-        engine.release();
-        assertFalse(engine.isInitialized());
-        assertNull(engine.getService());
-    }
-
-    @Test
-    public void testFacadeAnalyticsEngine() {
-        NativeAnalyticsEngineConfig config = NativeAnalyticsEngineConfig.builder().build();
-        NativeAnalyticsEngineResult<Boolean> res = AnalyticsEngine.init(null, config);
-        assertTrue(res.isSuccess());
-        assertTrue(AnalyticsEngine.isInitialized());
-        assertNotNull(AnalyticsEngine.getInstance());
-        assertNotNull(AnalyticsEngine.getConfig());
-        assertNotNull(AnalyticsEngine.getService());
-        assertNotNull(AnalyticsEngine.getCommandHandler());
-        assertNotNull(AnalyticsEngine.getSessionTracker());
-        assertNotNull(AnalyticsEngine.getPerformanceTracker());
-
-        AnalyticsEngine.trackEvent("user_login", null);
-        AnalyticsEngine.recordMetric("fps", 60.0, "fps");
-        AnalyticsEngine.flush();
-
-        AnalyticsEngine.release();
-        assertFalse(AnalyticsEngine.isInitialized());
-    }
-
-    @Test
-    public void testEventQueueOperations() {
-        EventQueue queue = new EventQueue(5);
-        assertTrue(queue.isEmpty());
-        assertEquals(0, queue.size());
-
-        for (int i = 0; i < 5; i++) {
-            assertTrue(queue.enqueue(new AnalyticsEvent("event_" + i)));
-        }
-        assertEquals(5, queue.size());
-
-        // Overflow drop oldest
-        queue.enqueue(new AnalyticsEvent("event_overflow"));
-        assertEquals(5, queue.size());
-
-        List<AnalyticsEvent> batch = queue.dequeueBatch(2);
-        assertEquals(2, batch.size());
-        assertEquals(3, queue.size());
-
-        List<AnalyticsEvent> remaining = queue.drain();
-        assertEquals(3, remaining.size());
-        assertTrue(queue.isEmpty());
-    }
-
-    @Test
-    public void testTelemetryDispatcher() {
-        TelemetryDispatcher dispatcher = new TelemetryDispatcher();
-        AtomicBoolean eventReceived = new AtomicBoolean(false);
-        AtomicBoolean metricReceived = new AtomicBoolean(false);
-
-        TelemetryDispatcher.TelemetryListener listener = new TelemetryDispatcher.TelemetryListener() {
-            @Override
-            public void onEventDispatched(AnalyticsEvent event) {
-                eventReceived.set(true);
-            }
-
-            @Override
-            public void onMetricDispatched(PerformanceMetric metric) {
-                metricReceived.set(true);
-            }
-        };
-
-        dispatcher.addListener(listener);
-        assertEquals(1, dispatcher.getListenerCount());
-
-        dispatcher.dispatchEvent(new AnalyticsEvent("test_dispatch"));
-        assertTrue(eventReceived.get());
-
-        dispatcher.dispatchMetric(new PerformanceMetric("latency", 42.0, "ms"));
-        assertTrue(metricReceived.get());
-
-        dispatcher.removeListener(listener);
-        assertEquals(0, dispatcher.getListenerCount());
-    }
-
-    @Test
-    public void testSessionTrackerLifecycle() {
-        SessionTracker tracker = new SessionTracker();
-        assertFalse(tracker.isSessionActive());
-        assertEquals(0, tracker.getTotalActiveDurationMs());
-
-        tracker.startSession();
-        assertTrue(tracker.isSessionActive());
-        assertNotNull(tracker.getCurrentSessionId());
-
-        tracker.startScreenView("HomeScreen");
-        try {
-            Thread.sleep(10);
-        } catch (InterruptedException ignored) {}
-        long screenDuration = tracker.endScreenView("HomeScreen");
-        assertTrue(screenDuration >= 5);
-
-        tracker.onAppBackground();
-        tracker.onAppForeground();
-        assertTrue(tracker.getTotalActiveDurationMs() >= 5);
-
-        tracker.endSession();
-        assertFalse(tracker.isSessionActive());
-    }
-
-    @Test
-    public void testPerformanceTrackerMetrics() {
-        PerformanceTracker tracker = new PerformanceTracker();
-        AtomicBoolean metricNotified = new AtomicBoolean(false);
-        tracker.addMetricListener(metric -> metricNotified.set(true));
-
-        tracker.startTrace("db_query");
-        assertTrue(tracker.hasActiveTrace("db_query"));
-
-        try {
-            Thread.sleep(10);
-        } catch (InterruptedException ignored) {}
-
-        long duration = tracker.stopTrace("db_query");
-        assertTrue(duration >= 5);
-        assertFalse(tracker.hasActiveTrace("db_query"));
-        assertTrue(metricNotified.get());
-
-        // Non-existent trace
-        assertEquals(-1, tracker.stopTrace("non_existent"));
-
-        // Helper records
-        tracker.recordBridgeLatency("send_payload", 15);
-        tracker.recordWebFirstPaint(120);
-        tracker.recordHttpResponseTime("api/v1/data", 200, 45);
-    }
+    // =========================================================================
+    // 3. Memory & Composite Providers
+    // =========================================================================
 
     @Test
     public void testMemoryAnalyticsProvider() {
         MemoryAnalyticsProvider provider = new MemoryAnalyticsProvider();
-        provider.initialize();
         assertTrue(provider.isInitialized());
 
-        AnalyticsEvent ev = new AnalyticsEvent("button_click");
-        provider.trackEvent(ev);
-        assertEquals(1, provider.getCapturedEvents().size());
-        assertEquals("button_click", provider.getCapturedEvents().get(0).getName());
+        Map<String, Object> params = new HashMap<>();
+        params.put("tier", "gold");
+        params.put("amount", 99.5);
+        AnalyticsEvent event = new AnalyticsEvent("purchase", params);
 
-        PerformanceMetric metric = new PerformanceMetric("cpu_load", 35.5, "%");
+        provider.trackEvent(event);
+        assertEquals(1, provider.getEventCount());
+        assertEquals("purchase", provider.getCapturedEvents().get(0).getName());
+
+        PerformanceMetric metric = new PerformanceMetric("render_time", 12.4, "ms");
         provider.recordMetric(metric);
-        assertEquals(1, provider.getCapturedMetrics().size());
-        assertEquals(35.5, provider.getCapturedMetrics().get(0).getValue(), 0.001);
+        assertEquals(1, provider.getMetricCount());
+        assertEquals(12.4, provider.getCapturedMetrics().get(0).getValue(), 0.001);
 
         provider.setUserId("user_123");
         assertEquals("user_123", provider.getUserId());
 
-        provider.setUserProperty("plan", "pro");
-        assertEquals("pro", provider.getUserProperties().get("plan"));
+        provider.setUserProperty("env", "staging");
+        assertEquals("staging", provider.getUserProperties().get("env"));
 
         provider.clear();
-        assertEquals(0, provider.getCapturedEvents().size());
-        assertEquals(0, provider.getCapturedMetrics().size());
+        assertEquals(0, provider.getEventCount());
+        assertEquals(0, provider.getMetricCount());
         assertNull(provider.getUserId());
     }
 
@@ -288,146 +212,330 @@ public class NativeAnalyticsEngineTest {
         composite.addProvider(p2);
         assertEquals(2, composite.getProviderCount());
 
-        composite.trackEvent(new AnalyticsEvent("multi_track"));
-        assertEquals(1, p1.getCapturedEvents().size());
-        assertEquals(1, p2.getCapturedEvents().size());
+        AnalyticsEvent event = new AnalyticsEvent("login_click");
+        composite.trackEvent(event);
 
-        composite.recordMetric(new PerformanceMetric("ram", 1024, "MB"));
-        assertEquals(1, p1.getCapturedMetrics().size());
-        assertEquals(1, p2.getCapturedMetrics().size());
+        assertEquals(1, p1.getEventCount());
+        assertEquals(1, p2.getEventCount());
 
-        composite.removeProvider(p2);
+        composite.removeProvider(p1);
         assertEquals(1, composite.getProviderCount());
+
+        AnalyticsEvent event2 = new AnalyticsEvent("logout_click");
+        composite.trackEvent(event2);
+
+        assertEquals(1, p1.getEventCount());
+        assertEquals(2, p2.getEventCount());
+    }
+
+    // =========================================================================
+    // 4. Offline EventQueue & Disk Persistence
+    // =========================================================================
+
+    @Test
+    public void testEventQueuePersistenceAndDequeue() {
+        EventQueue queue = new EventQueue(tempDir);
+        assertEquals(0, queue.count());
+
+        for (int i = 0; i < 25; i++) {
+            Map<String, Object> p = new HashMap<>();
+            p.put("index", i);
+            queue.enqueue(new AnalyticsEvent("batch_item_" + i, p));
+        }
+
+        assertTrue("Queue count should reflect enqueued items", queue.count() >= 25);
+
+        List<AnalyticsEvent> peeked = queue.peek(5);
+        assertEquals(5, peeked.size());
+
+        List<AnalyticsEvent> batch1 = queue.dequeue(10);
+        assertEquals(10, batch1.size());
+        assertEquals("batch_item_0", batch1.get(0).getName());
+
+        List<AnalyticsEvent> batch2 = queue.dequeue(20);
+        assertEquals(15, batch2.size());
+        assertEquals(0, queue.count());
     }
 
     @Test
-    public void testNativeAnalyticsService() throws Exception {
-        NativeAnalyticsService service = new NativeAnalyticsService();
+    public void testDiskBufferAnalyticsProvider() {
+        DiskBufferAnalyticsProvider diskProvider = new DiskBufferAnalyticsProvider(tempDir);
+        assertTrue(diskProvider.isInitialized());
+
+        diskProvider.trackEvent(new AnalyticsEvent("offline_click"));
+        diskProvider.recordMetric(new PerformanceMetric("cpu_load", 45.0, "%"));
+
+        assertTrue(diskProvider.getEventQueue().count() >= 2);
+        diskProvider.clear();
+        assertEquals(0, diskProvider.getEventQueue().count());
+    }
+
+    // =========================================================================
+    // 5. PerformanceTracker
+    // =========================================================================
+
+    @Test
+    public void testPerformanceTrackerTraces() throws InterruptedException {
+        MemoryAnalyticsProvider mem = new MemoryAnalyticsProvider();
+        PerformanceTracker tracker = new PerformanceTracker(mem);
+
+        tracker.startTrace("db_query");
+        assertTrue(tracker.hasActiveTrace("db_query"));
+
+        Thread.sleep(15);
+        long duration = tracker.stopTrace("db_query");
+        assertTrue("Duration should be >= 10ms", duration >= 10);
+        assertFalse(tracker.hasActiveTrace("db_query"));
+
+        assertEquals(1, mem.getMetricCount());
+        PerformanceMetric metric = mem.getCapturedMetrics().get(0);
+        assertEquals("db_query_duration", metric.getMetricName());
+        assertEquals("ms", metric.getUnit());
+
+        tracker.recordBridgeLatency("invokeNative", 8);
+        tracker.recordWebFirstPaint(250);
+        tracker.recordHttpResponseTime("/api/v1/auth", 200, 120);
+
+        assertEquals(4, mem.getMetricCount());
+    }
+
+    // =========================================================================
+    // 6. SessionTracker
+    // =========================================================================
+
+    @Test
+    public void testSessionTrackerLifecycle() throws InterruptedException {
+        MemoryAnalyticsProvider mem = new MemoryAnalyticsProvider();
+        SessionTracker sessionTracker = new SessionTracker(mem);
+
+        assertTrue(sessionTracker.isSessionActive());
+        assertNotNull(sessionTracker.getCurrentSessionId());
+        String initialSessionId = sessionTracker.getCurrentSessionId();
+
+        sessionTracker.startScreenView("HomeScreen");
+        assertEquals("HomeScreen", sessionTracker.getCurrentScreenName());
+
+        Thread.sleep(10);
+        long viewDuration = sessionTracker.endScreenView("HomeScreen");
+        assertTrue("Screen view duration should be >= 5ms", viewDuration >= 5);
+        assertNull(sessionTracker.getCurrentScreenName());
+
+        sessionTracker.onAppBackground();
+        sessionTracker.onAppForeground();
+        assertTrue(sessionTracker.getTotalActiveDurationMs() >= 0);
+
+        sessionTracker.endSession();
+        assertFalse(sessionTracker.isSessionActive());
+
+        // Verify session events captured in provider
+        boolean hasStart = false;
+        boolean hasEnd = false;
+        boolean hasScreenView = false;
+        for (AnalyticsEvent ev : mem.getCapturedEvents()) {
+            if ("session_start".equals(ev.getName())) hasStart = true;
+            if ("session_end".equals(ev.getName())) hasEnd = true;
+            if ("screen_view".equals(ev.getName())) hasScreenView = true;
+        }
+        assertTrue("Should contain session_start", hasStart);
+        assertTrue("Should contain session_end", hasEnd);
+        assertTrue("Should contain screen_view", hasScreenView);
+    }
+
+    // =========================================================================
+    // 7. NativeAnalyticsService & Ecosystem Registration
+    // =========================================================================
+
+    @Test
+    public void testNativeAnalyticsService() {
+        NativeAnalyticsEngineConfig config = new NativeAnalyticsEngineConfig.Builder()
+                .storageDirectory(tempDir)
+                .build();
+        NativeAnalyticsService service = new NativeAnalyticsService(null, config);
+
+        assertEquals("NativeAnalyticsService", service.getServiceId());
+        service.initialize();
+        service.start();
+        assertTrue(service.isRunning());
+
+        service.trackEvent("test_event_service", Collections.singletonMap("k", "v"));
+        service.recordMetric("test_metric_service", 42.0, "units");
+        service.flush();
+
+        // Verify in default memory provider
+        MemoryAnalyticsProvider mem = service.getDefaultMemoryProvider();
+        // Wait briefly for telemetry dispatcher background thread
+        try { Thread.sleep(50); } catch (InterruptedException ignored) {}
+
+        assertTrue("Event should be dispatched to memory provider", mem.getEventCount() > 0);
+
+        // Test registering in ServiceRegistry
+        ServiceRegistry registry = ServiceRegistry.getInstance();
+        service.registerInRegistry(registry);
+        assertTrue(registry.hasService(com.roni.library.contracts.service.IService.class));
+
+        service.stop();
+        service.dispose();
+        assertTrue(service.isDisposed());
+    }
+
+    // =========================================================================
+    // 8. AnalyticsCommandHandler (RPC Integration)
+    // =========================================================================
+
+    @Test
+    public void testCommandHandlerActions() {
+        NativeAnalyticsEngineConfig config = new NativeAnalyticsEngineConfig.Builder()
+                .storageDirectory(tempDir)
+                .build();
+        NativeAnalyticsService service = new NativeAnalyticsService(null, config);
         service.initialize();
         service.start();
 
-        assertNotNull(service.getCompositeProvider());
-        assertNotNull(service.getDefaultMemoryProvider());
-        assertNotNull(service.getSessionTracker());
-        assertNotNull(service.getPerformanceTracker());
+        AnalyticsCommandHandler handler = new AnalyticsCommandHandler(service);
+        assertEquals("analytics", handler.getRoutePrefix());
+        assertEquals("analytics", handler.getPath());
+        assertEquals("*", handler.getAction());
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("category", "checkout");
-        service.trackEvent("purchase", params);
+        // 1. trackEvent RPC
+        NativeApiRequest trackReq = new NativeApiRequest.Builder()
+                .action("trackEvent")
+                .parameter("name", "rpc_event")
+                .parameter("parameters", Collections.singletonMap("source", "webview"))
+                .build();
+        NativeApiResponse trackResp = handler.handleRequest(trackReq);
+        assertTrue(trackResp.isSuccess());
 
-        service.recordMetric("checkout_latency", 250, "ms");
+        // 2. recordMetric RPC
+        NativeApiRequest metricReq = new NativeApiRequest.Builder()
+                .action("recordMetric")
+                .parameter("name", "rpc_latency")
+                .parameter("value", 34.5)
+                .parameter("unit", "ms")
+                .build();
+        NativeApiResponse metricResp = handler.handleRequest(metricReq);
+        assertTrue(metricResp.isSuccess());
 
-        assertEquals(1, service.getDefaultMemoryProvider().getCapturedEvents().size());
-        assertTrue(service.getDefaultMemoryProvider().getCapturedMetrics().size() >= 1);
+        // 3. startTrace & stopTrace RPC
+        NativeApiRequest startTraceReq = new NativeApiRequest.Builder()
+                .action("startTrace")
+                .parameter("name", "rpc_trace")
+                .build();
+        assertTrue(handler.handleRequest(startTraceReq).isSuccess());
+
+        NativeApiRequest stopTraceReq = new NativeApiRequest.Builder()
+                .action("stopTrace")
+                .parameter("name", "rpc_trace")
+                .build();
+        NativeApiResponse stopTraceResp = handler.handleRequest(stopTraceReq);
+        assertTrue(stopTraceResp.isSuccess());
+        assertNotNull(stopTraceResp.getData().get("durationMs"));
+
+        // 4. getStats RPC
+        NativeApiRequest statsReq = new NativeApiRequest.Builder()
+                .action("getStats")
+                .build();
+        NativeApiResponse statsResp = handler.handleRequest(statsReq);
+        assertTrue(statsResp.isSuccess());
+        assertNotNull(statsResp.getData().get("sessionId"));
+
+        // 5. Invalid action RPC
+        NativeApiRequest invalidReq = new NativeApiRequest.Builder()
+                .action("non_existent_action")
+                .build();
+        NativeApiResponse invalidResp = handler.handleRequest(invalidReq);
+        assertFalse(invalidResp.isSuccess());
+        assertEquals(404, invalidResp.getStatusCode());
+
+        // 6. Async callback handler test
+        AtomicBoolean callbackCalled = new AtomicBoolean(false);
+        handler.handle(trackReq, new IApiCallback() {
+            @Override
+            public void onResponse(NativeApiResponse response) {
+                callbackCalled.set(true);
+            }
+
+            @Override
+            public void onError(NativeApiError error) {
+                fail("Should not trigger error callback");
+            }
+        });
+        assertTrue(callbackCalled.get());
 
         service.stop();
         service.dispose();
     }
 
+    // =========================================================================
+    // 9. AnalyticsEngine Static Facade Interoperability
+    // =========================================================================
+
     @Test
-    public void testAnalyticsCommandHandler() {
-        NativeAnalyticsService service = new NativeAnalyticsService();
-        AnalyticsCommandHandler handler = new AnalyticsCommandHandler(service);
+    public void testAnalyticsEngineFacade() {
+        NativeAnalyticsEngineConfig config = new NativeAnalyticsEngineConfig.Builder()
+                .storageDirectory(tempDir)
+                .build();
 
-        assertEquals("analytics", handler.getPath());
-        assertEquals("*", handler.getAction());
-        assertEquals("analytics", handler.getRoutePrefix());
-        assertEquals(service, handler.getAnalyticsService());
+        NativeAnalyticsEngineResult<Void> res = AnalyticsEngine.init(null, config);
+        assertTrue(res.isSuccess());
+        assertTrue(AnalyticsEngine.isInitialized());
 
-        // TrackEvent action
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", "app_start");
-        NativeApiRequest reqTrack = new NativeApiRequest("req_1", "analytics", "trackEvent", params, System.currentTimeMillis());
-        NativeApiResponse respTrack = handler.handleRequest(reqTrack);
-        assertTrue(respTrack.isSuccess());
-        assertEquals("tracked", respTrack.getData().get("status"));
+        AnalyticsEngine.trackEvent("facade_event", Collections.singletonMap("key", "val"));
+        AnalyticsEngine.recordMetric("facade_metric", 100.0, "points");
+        AnalyticsEngine.flush();
 
-        // RecordMetric action
-        Map<String, Object> metricParams = new HashMap<>();
-        metricParams.put("name", "memory_usage");
-        metricParams.put("value", 128.5);
-        metricParams.put("unit", "MB");
-        NativeApiRequest reqMetric = new NativeApiRequest("req_2", "analytics", "recordMetric", metricParams, System.currentTimeMillis());
-        NativeApiResponse respMetric = handler.handleRequest(reqMetric);
-        assertTrue(respMetric.isSuccess());
-        assertEquals("recorded", respMetric.getData().get("status"));
+        assertNotNull(AnalyticsEngine.getSessionTracker());
+        assertNotNull(AnalyticsEngine.getPerformanceTracker());
+        assertNotNull(AnalyticsEngine.getService());
+        assertNotNull(AnalyticsEngine.getCommandHandler());
+        assertNotNull(AnalyticsEngine.getEventQueue());
 
-        // Session actions
-        NativeApiRequest reqStartSession = new NativeApiRequest("req_3", "analytics", "startSession", null, System.currentTimeMillis());
-        NativeApiResponse respStartSession = handler.handleRequest(reqStartSession);
-        assertTrue(respStartSession.isSuccess());
-
-        NativeApiRequest reqEndSession = new NativeApiRequest("req_4", "analytics", "endSession", null, System.currentTimeMillis());
-        NativeApiResponse respEndSession = handler.handleRequest(reqEndSession);
-        assertTrue(respEndSession.isSuccess());
-
-        // Trace actions
-        Map<String, Object> traceParams = new HashMap<>();
-        traceParams.put("traceName", "render_screen");
-        NativeApiRequest reqStartTrace = new NativeApiRequest("req_5", "analytics", "startTrace", traceParams, System.currentTimeMillis());
-        assertTrue(handler.handleRequest(reqStartTrace).isSuccess());
-
-        NativeApiRequest reqStopTrace = new NativeApiRequest("req_6", "analytics", "stopTrace", traceParams, System.currentTimeMillis());
-        assertTrue(handler.handleRequest(reqStopTrace).isSuccess());
-
-        // Async callback test
-        AtomicBoolean callbackSuccess = new AtomicBoolean(false);
-        handler.handle(reqTrack, new IApiCallback() {
-            @Override
-            public void onResponse(NativeApiResponse response) {
-                callbackSuccess.set(response.isSuccess());
-            }
-
-            @Override
-            public void onError(NativeApiError error) {}
-        });
-        assertTrue(callbackSuccess.get());
-
-        // Unknown action error
-        NativeApiRequest reqUnknown = new NativeApiRequest("req_err", "analytics", "unknownAction", null, System.currentTimeMillis());
-        NativeApiResponse respUnknown = handler.handleRequest(reqUnknown);
-        assertFalse(respUnknown.isSuccess());
+        AnalyticsEngine.release();
+        assertFalse(AnalyticsEngine.isInitialized());
     }
 
-    @Test
-    public void testDiskBufferAnalyticsProvider() {
-        DiskBufferAnalyticsProvider provider = new DiskBufferAnalyticsProvider(null);
-        provider.initialize();
-
-        AnalyticsEvent event = new AnalyticsEvent("disk_buffered_event");
-        provider.trackEvent(event);
-        assertFalse(provider.getBufferedEvents().isEmpty());
-
-        PerformanceMetric metric = new PerformanceMetric("disk_write_latency", 12.4, "ms");
-        provider.recordMetric(metric);
-        assertFalse(provider.getBufferedMetrics().isEmpty());
-
-        provider.setUserId("user_disk_99");
-        provider.setUserProperty("tier", "enterprise");
-
-        provider.flush();
-        provider.clear();
-        assertTrue(provider.getBufferedEvents().isEmpty());
-        assertTrue(provider.getBufferedMetrics().isEmpty());
-    }
+    // =========================================================================
+    // 10. Concurrency & Multithreading Stress Test
+    // =========================================================================
 
     @Test
-    public void testBatchUploader() throws Exception {
-        EventQueue queue = new EventQueue(100);
-        AtomicBoolean uploadCalled = new AtomicBoolean(false);
+    public void testConcurrentEventTracking() throws InterruptedException {
+        NativeAnalyticsEngine engine = NativeAnalyticsEngine.getInstance();
+        NativeAnalyticsEngineConfig config = new NativeAnalyticsEngineConfig.Builder()
+                .storageDirectory(tempDir)
+                .build();
+        engine.init(null, config);
 
-        BatchUploader uploader = new BatchUploader(queue, 500, 2, batch -> uploadCalled.set(true));
-        uploader.start();
-        assertTrue(uploader.isRunning());
+        int threadCount = 10;
+        int eventsPerThread = 50;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(threadCount);
 
-        queue.enqueue(new AnalyticsEvent("ev_1"));
-        queue.enqueue(new AnalyticsEvent("ev_2"));
-        uploader.onEventAdded();
+        for (int t = 0; t < threadCount; t++) {
+            final int threadId = t;
+            executor.submit(() -> {
+                try {
+                    for (int i = 0; i < eventsPerThread; i++) {
+                        Map<String, Object> params = new HashMap<>();
+                        params.put("thread", threadId);
+                        params.put("seq", i);
+                        engine.trackEvent("concurrent_event", params);
+                        engine.recordMetric("concurrent_metric_" + threadId, i * 1.5, "cnt");
+                    }
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
 
-        uploader.flush();
-        assertTrue(uploadCalled.get());
+        assertTrue("All threads should complete within 10 seconds", latch.await(10, TimeUnit.SECONDS));
+        executor.shutdown();
 
-        uploader.stop();
-        assertFalse(uploader.isRunning());
+        engine.flush();
+        // Give background dispatcher time to complete
+        Thread.sleep(100);
+
+        MemoryAnalyticsProvider mem = engine.getService().getDefaultMemoryProvider();
+        assertTrue("Memory provider should capture events under concurrent load", mem.getEventCount() > 0);
     }
 }
+

@@ -1,2 +1,2 @@
 # App module ProGuard rules
--keep class com.roni.library.storage.** { *; }
+-keep class com.roni.library.analytics.** { *; }

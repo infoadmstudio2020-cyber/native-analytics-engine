@@ -1,35 +1,42 @@
 package com.roni.library.analytics;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import java.io.File;
+
 /**
- * Configuration options for NativeAnalyticsEngine.
+ * Configuration for {@link NativeAnalyticsEngine}.
+ * Uses builder pattern to construct immutable settings for offline buffering,
+ * batching intervals, and debug logging.
+ *
+ * @author infoadmstudio2020-cyber
  */
-public class NativeAnalyticsEngineConfig {
+public final class NativeAnalyticsEngineConfig {
+
     private final boolean debugEnabled;
     private final String tag;
     private final int timeout;
-    private final int batchIntervalMs;
-    private final int batchSizeThreshold;
-    private final int maxQueueSize;
-    private final boolean diskBufferingEnabled;
+    private final int batchSize;
+    private final long flushIntervalMs;
+    private final boolean offlinePersistenceEnabled;
+    private final File storageDirectory;
 
     private NativeAnalyticsEngineConfig(Builder builder) {
         this.debugEnabled = builder.debugEnabled;
-        this.tag = builder.tag;
-        this.timeout = builder.timeout;
-        this.batchIntervalMs = builder.batchIntervalMs;
-        this.batchSizeThreshold = builder.batchSizeThreshold;
-        this.maxQueueSize = builder.maxQueueSize;
-        this.diskBufferingEnabled = builder.diskBufferingEnabled;
-    }
-
-    public static Builder builder() {
-        return new Builder();
+        this.tag = builder.tag != null ? builder.tag : "NativeAnalyticsEngine";
+        this.timeout = builder.timeout > 0 ? builder.timeout : 30000;
+        this.batchSize = builder.batchSize > 0 ? builder.batchSize : 50;
+        this.flushIntervalMs = builder.flushIntervalMs > 0 ? builder.flushIntervalMs : 15000L;
+        this.offlinePersistenceEnabled = builder.offlinePersistenceEnabled;
+        this.storageDirectory = builder.storageDirectory;
     }
 
     public boolean isDebugEnabled() {
         return debugEnabled;
     }
 
+    @NonNull
     public String getTag() {
         return tag;
     }
@@ -38,68 +45,71 @@ public class NativeAnalyticsEngineConfig {
         return timeout;
     }
 
-    public int getBatchIntervalMs() {
-        return batchIntervalMs;
+    public int getBatchSize() {
+        return batchSize;
     }
 
-    public int getBatchSizeThreshold() {
-        return batchSizeThreshold;
+    public long getFlushIntervalMs() {
+        return flushIntervalMs;
     }
 
-    public int getMaxQueueSize() {
-        return maxQueueSize;
+    public boolean isOfflinePersistenceEnabled() {
+        return offlinePersistenceEnabled;
     }
 
-    public boolean isDiskBufferingEnabled() {
-        return diskBufferingEnabled;
+    @Nullable
+    public File getStorageDirectory() {
+        return storageDirectory;
     }
 
-    public static class Builder {
+    public static final class Builder {
         private boolean debugEnabled = false;
         private String tag = "NativeAnalyticsEngine";
         private int timeout = 30000;
-        private int batchIntervalMs = 5000;
-        private int batchSizeThreshold = 20;
-        private int maxQueueSize = 1000;
-        private boolean diskBufferingEnabled = true;
+        private int batchSize = 50;
+        private long flushIntervalMs = 15000L;
+        private boolean offlinePersistenceEnabled = true;
+        private File storageDirectory = null;
+
+        public Builder() {
+        }
 
         public Builder debugEnabled(boolean debugEnabled) {
             this.debugEnabled = debugEnabled;
             return this;
         }
 
-        public Builder tag(String tag) {
-            if (tag != null && !tag.trim().isEmpty()) {
-                this.tag = tag;
-            }
+        public Builder tag(@NonNull String tag) {
+            this.tag = tag;
             return this;
         }
 
         public Builder timeout(int timeout) {
-            this.timeout = Math.max(1000, timeout);
+            this.timeout = timeout;
             return this;
         }
 
-        public Builder batchIntervalMs(int batchIntervalMs) {
-            this.batchIntervalMs = Math.max(500, batchIntervalMs);
+        public Builder batchSize(int batchSize) {
+            this.batchSize = batchSize;
             return this;
         }
 
-        public Builder batchSizeThreshold(int batchSizeThreshold) {
-            this.batchSizeThreshold = Math.max(1, batchSizeThreshold);
+        public Builder flushIntervalMs(long flushIntervalMs) {
+            this.flushIntervalMs = flushIntervalMs;
             return this;
         }
 
-        public Builder maxQueueSize(int maxQueueSize) {
-            this.maxQueueSize = Math.max(10, maxQueueSize);
+        public Builder offlinePersistenceEnabled(boolean enabled) {
+            this.offlinePersistenceEnabled = enabled;
             return this;
         }
 
-        public Builder diskBufferingEnabled(boolean diskBufferingEnabled) {
-            this.diskBufferingEnabled = diskBufferingEnabled;
+        public Builder storageDirectory(@Nullable File storageDirectory) {
+            this.storageDirectory = storageDirectory;
             return this;
         }
 
+        @NonNull
         public NativeAnalyticsEngineConfig build() {
             return new NativeAnalyticsEngineConfig(this);
         }

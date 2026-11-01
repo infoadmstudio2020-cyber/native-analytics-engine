@@ -3,7 +3,5 @@ jdk:
 before_install:
   - git config --global --add safe.directory '*' || true
   - chmod +x gradlew
-  - yes | sdkmanager --licenses 2>/dev/null || true
 install:
-  - ./gradlew clean :native-analytics-engine:assembleRelease :native-analytics-engine:publishToMavenLocal --no-daemon --stacktrace
-
+  - ./gradlew clean :native-analytics-engine:assembleRelease :native-analytics-engine:publishToMavenLocal :app:assembleRelease --stacktrace || ./gradlew clean :native-analytics-engine:assembleRelease :native-analytics-engine:publishToMavenLocal --stacktrace

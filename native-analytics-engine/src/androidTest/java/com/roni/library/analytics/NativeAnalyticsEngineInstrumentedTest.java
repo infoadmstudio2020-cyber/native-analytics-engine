@@ -13,9 +13,10 @@ import static org.junit.Assert.*;
  * Instrumented tests for {@link NativeAnalyticsEngine}.
  * Run on a real device or emulator.
  *
- * @author com.roni.library.logger
+ * @author infoadmstudio2020-cyber
  */
 @RunWith(AndroidJUnit4.class)
 public class NativeAnalyticsEngineInstrumentedTest {
 
+   
 }

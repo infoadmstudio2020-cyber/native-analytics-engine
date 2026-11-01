@@ -2,7 +2,7 @@
 # Build script for NativeAnalyticsEngine
 set -e
 
-echo "Building NativeAnalyticsEngine v1.0.4..."
+echo "Building NativeAnalyticsEngine v1.0.5..."
 chmod +x gradlew
-./gradlew clean :native-analytics-engine:assembleRelease :app:assembleRelease --stacktrace || ./gradlew clean assembleRelease || ./gradlew clean build
-echo "Build complete: native-analytics-engine/build/outputs/aar/"
+./gradlew clean :java-library:assembleRelease 2>/dev/null || ./gradlew clean assembleRelease || ./gradlew clean build
+echo "Build complete: build/outputs/aar/"

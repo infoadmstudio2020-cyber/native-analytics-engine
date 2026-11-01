@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F172A"
+    android:background="#F8FAFC"
     android:fillViewport="true">
 
     <LinearLayout
@@ -11,172 +12,292 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Title & Version Header -->
-        <TextView
+        <!-- Header / Dashboard Card -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="NativeAnalyticsEngine Explorer"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:textColor="#F8FAFC" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="v1.0.4 • Layer 2 Domain Engine • Production Ready"
-            android:textSize="12sp"
-            android:textColor="#94A3B8"
-            android:paddingBottom="12dp" />
-
-        <!-- Engine Status Card -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="#1E293B"
-            android:padding="14dp"
-            android:layout_marginBottom="14dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="ENGINE DASHBOARD"
-                android:textStyle="bold"
-                android:textSize="12sp"
-                android:textColor="#38BDF8"
-                android:paddingBottom="4dp" />
-
-            <TextView
-                android:id="@+id/tv_status"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Status: INITIALIZING..."
-                android:textSize="15sp"
-                android:textColor="#34D399"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Subsystems: SessionTracker • PerformanceTracker • BatchUploader • DiskBuffer"
-                android:textSize="11sp"
-                android:textColor="#94A3B8"
-                android:paddingTop="4dp" />
-        </LinearLayout>
-
-        <!-- Control Action Buttons Card -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="#1E293B"
-            android:padding="14dp"
-            android:layout_marginBottom="14dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="ANALYTICS CONTROLS"
-                android:textStyle="bold"
-                android:textSize="12sp"
-                android:textColor="#38BDF8"
-                android:paddingBottom="8dp" />
-
-            <Button
-                android:id="@+id/btn_init"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Initialize Engine"
-                android:textSize="13sp"
-                android:layout_marginBottom="6dp" />
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:strokeColor="#CBD5E1"
+            app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="6dp">
+                android:orientation="vertical"
+                android:padding="16dp">
 
-                <Button
-                    android:id="@+id/btn_track_event"
-                    android:layout_width="0dp"
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Track Event"
-                    android:textSize="12sp"
-                    android:layout_marginEnd="4dp" />
+                    android:text="NativeAnalyticsEngine Demo"
+                    android:textColor="#0F172A"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
 
-                <Button
-                    android:id="@+id/btn_record_metric"
-                    android:layout_width="0dp"
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Record Metric"
-                    android:textSize="12sp"
-                    android:layout_marginStart="4dp" />
+                    android:layout_marginTop="2dp"
+                    android:text="Layer 2 Domain Engine • v1.0.5"
+                    android:textColor="#64748B"
+                    android:textSize="12sp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="#E2E8F0" />
+
+                <TextView
+                    android:id="@+id/tv_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Status: Initializing…"
+                    android:textColor="#2563EB"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_session_info"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Session: N/A"
+                    android:textColor="#334155"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tv_diagnostics"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Events: 0 | Metrics: 0 | Offline Queue: 0"
+                    android:textColor="#475569"
+                    android:textSize="12sp" />
             </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Feature Explorer Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:strokeColor="#CBD5E1"
+            app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="6dp">
+                android:orientation="vertical"
+                android:padding="16dp">
 
-                <Button
-                    android:id="@+id/btn_trace"
-                    android:layout_width="0dp"
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Run Trace Test"
-                    android:textSize="12sp"
-                    android:layout_marginEnd="4dp" />
+                    android:text="Feature Explorer &amp; Telemetry"
+                    android:textColor="#0F172A"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
-                <Button
-                    android:id="@+id/btn_session"
-                    android:layout_width="0dp"
+                <!-- Event Tracking Controls -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Toggle Session"
-                    android:textSize="12sp"
-                    android:layout_marginStart="4dp" />
+                    android:layout_marginTop="8dp"
+                    android:hint="Event Name">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_event_name"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="button_click"
+                        android:textSize="14sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btn_track_event"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="4dp"
+                        android:layout_weight="1"
+                        android:text="Track Event" />
+
+                    <Button
+                        android:id="@+id/btn_record_metric"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:layout_weight="1"
+                        android:text="Record Metric" />
+                </LinearLayout>
+
+                <!-- Performance Trace & Screen View Controls -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btn_toggle_trace"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="4dp"
+                        android:layout_weight="1"
+                        android:text="Start Trace" />
+
+                    <Button
+                        android:id="@+id/btn_toggle_screen"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:layout_weight="1"
+                        android:text="Screen View" />
+                </LinearLayout>
+
+                <!-- Session Lifecycle Simulation -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btn_new_session"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="4dp"
+                        android:layout_weight="1"
+                        android:text="New Session" />
+
+                    <Button
+                        android:id="@+id/btn_flush_queue"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:layout_weight="1"
+                        android:text="Flush Queue" />
+                </LinearLayout>
             </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-            <Button
-                android:id="@+id/btn_flush"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Flush Telemetry"
-                android:textSize="13sp" />
-        </LinearLayout>
-
-        <!-- Runtime Event Log Card -->
-        <LinearLayout
+        <!-- Self-Verifying Integration Test Center -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="#1E293B"
-            android:padding="14dp">
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:strokeColor="#CBD5E1"
+            app:strokeWidth="1dp">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="RUNTIME TELEMETRY LOG"
-                android:textColor="#38BDF8"
-                android:textStyle="bold"
-                android:textSize="12sp"
-                android:paddingBottom="6dp" />
+                android:orientation="vertical"
+                android:padding="16dp">
 
-            <TextView
-                android:id="@+id/tv_log"
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Integration Test Center"
+                    android:textColor="#0F172A"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Verifies contracts, providers, offline queue &amp; RPC bridge"
+                    android:textColor="#64748B"
+                    android:textSize="12sp" />
+
+                <Button
+                    android:id="@+id/btn_run_tests"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Run All Subsystem Tests" />
+
+                <TextView
+                    android:id="@+id/tv_test_results"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="#F1F5F9"
+                    android:fontFamily="monospace"
+                    android:padding="8dp"
+                    android:text="Test results will appear here..."
+                    android:textColor="#1E293B"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Runtime Console Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:strokeColor="#CBD5E1"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="220dp"
-                android:background="#020617"
-                android:textColor="#E2E8F0"
-                android:fontFamily="monospace"
-                android:textSize="11sp"
-                android:padding="10dp"
-                android:scrollbars="vertical"
-                android:text="[Console Ready] Waiting for telemetry events...\n" />
-        </LinearLayout>
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Runtime Console Logs"
+                        android:textColor="#0F172A"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btn_clear_logs"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Clear" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tv_console_logs"
+                    android:layout_width="match_parent"
+                    android:layout_height="180dp"
+                    android:layout_marginTop="6dp"
+                    android:background="#0F172A"
+                    android:fontFamily="monospace"
+                    android:padding="8dp"
+                    android:scrollbars="vertical"
+                    android:text="[Ready] NativeAnalyticsEngine console initialized."
+                    android:textColor="#38BDF8"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 </ScrollView>
