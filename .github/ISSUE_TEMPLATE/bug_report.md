@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a bug in NativeStorageEngine
+about: Report a bug in NativeRuntimeSDK
 title: '[BUG] '
 labels: bug
 assignees: ''
@@ -16,7 +16,7 @@ Steps to reproduce the behavior.
 What you expected to happen.
 
 **Environment**
-- Library version: 1.0.1
+- Library version: 1.0.0
 - Android version:
 - Device:
 

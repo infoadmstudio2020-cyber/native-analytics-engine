@@ -1,17 +1,17 @@
-# NativeStorageEngine (Layer 2 Domain Engine)
+# NativeAnalyticsEngine (Layer 2 Domain Engine)
 
-[![Release](https://img.shields.io/badge/Release-v1.0.1-blue.svg)](https://github.com/com.roni.library.logger/native-storage-engine/releases)
+[![Release](https://img.shields.io/badge/Release-v1.0.2-blue.svg)](https://github.com/com.roni.library.logger/native-analytics-engine/releases)
 [![API](https://img.shields.io/badge/API-21%2B-brightgreen.svg)](https://android-arsenal.com/api?level=21)
 [![License](https://img.shields.io/badge/License-Apache-2.0-blue.svg)](LICENSE)
 [![Architecture](https://img.shields.io/badge/Architecture-NativeRuntime%20L2-orange.svg)](#architecture)
 
-High-performance, decoupled, zero-loss persistent storage, AES-GCM encrypted preferences, document NoSQL database, and LRU disk cache engine for the **NativeRuntime Android SDK Ecosystem**.
+High-performance, decoupled, event tracking, user session metrics, and telemetry batching engine for the **NativeRuntime Android SDK Ecosystem**.
 
 ---
 
 ## Architecture Overview
 
-`NativeStorageEngine` is classified under **Layer 2: Domain Engine Subsystems** within the 6-layer NativeRuntime architecture.
+`NativeAnalyticsEngine` is classified under **Layer 2: Domain Engine Subsystems** within the 6-layer NativeRuntime architecture. It uses the decoupled, independent `NativeStorageEngine` (`com.github.infoadmstudio2020-cyber:native-storage-engine`) for zero-loss offline persistent disk buffering without duplicate internal storage implementations.
 
 ```
 +-----------------------------------------------------------------------------------+
@@ -24,7 +24,9 @@ High-performance, decoupled, zero-loss persistent storage, AES-GCM encrypted pre
                                         | Routes Requests
 +-----------------------------------------------------------------------------------+
 | Layer 2: Domain Engines                                                           |
-|  -> NativeStorageEngine (EncryptedStore • NoSQL DB • LRU Cache • KeyValueStore)   |
+|  -> NativeAnalyticsEngine (SessionTracker • PerformanceTracker • BatchUploader)   |
+|     |                                                                             |
+|     +---> uses NativeStorageEngine (Layer 2 Decoupled Dependency)                 |
 +-----------------------------------------------------------------------------------+
                                         | Managed Service & Diagnostics
 +-----------------------------------------------------------------------------------+
@@ -40,20 +42,20 @@ High-performance, decoupled, zero-loss persistent storage, AES-GCM encrypted pre
 
 ## Key Subsystems & Features
 
-1. **Encrypted Preferences (`EncryptedStore` / `EncryptedPreferences`)**:
-   - Industry-standard AES-GCM authenticated encryption.
-   - Transparent encryption and decryption of strings, integers, booleans, and floats.
-2. **Document NoSQL Database (`StorageDatabase` & `StorageCollection`)**:
-   - Schema-less document storage supporting nested keys, indexing, and transactional batch commits.
-   - Flexible query filtering (`QueryFilter.eq`, `QueryFilter.gt`, `QueryFilter.all`).
-3. **LRU Disk Cache (`LruDiskCache`)**:
-   - Size-bounded disk cache with automated eviction of least recently used byte arrays.
-   - Configurable maximum byte size threshold.
-4. **Fast Key-Value Store (`KeyValueStore`)**:
-   - In-memory concurrent map with synchronous background disk flush.
-5. **Database Helper (`DatabaseHelper`)**:
-   - Unified helper facade for structured tabular and collection records.
-6. **Command Handler (`StorageCommandHandler`)**:
+1. **Event Queue & Batching (`EventQueue`, `BatchUploader`)**:
+   - Thread-safe bounded in-memory event queue with overflow protection.
+   - Configurable batch intervals, size thresholds, and automatic periodic flush.
+2. **Session Lifecycle Tracking (`SessionTracker`)**:
+   - Foreground and background lifecycle duration tracking.
+   - Per-screen view timing and unique session generation.
+3. **Performance Metrics & Traces (`PerformanceTracker`)**:
+   - High-resolution code execution tracing (`startTrace` / `stopTrace`).
+   - Web bridge latency, HTTP response time, and first-paint metrics reporting.
+4. **Offline Disk Buffer (`DiskBufferAnalyticsProvider`)**:
+   - Zero-loss offline buffering powered by independent `NativeStorageEngine` (`KeyValueStore`).
+5. **Multi-Destination Telemetry (`CompositeAnalyticsProvider`, `TelemetryDispatcher`)**:
+   - Pluggable memory, disk buffer, and remote analytics dispatchers.
+6. **Command Handler (`AnalyticsCommandHandler`)**:
    - Standardized `NativeApiRequest` / `NativeApiResponse` RPC dispatcher for web bridge integration.
 
 ---
@@ -76,22 +78,15 @@ dependencyResolutionManagement {
 dependencies {
     implementation 'com.github.infoadmstudio2020-cyber:NativeRuntimeContracts:v1.0.1'
     implementation 'com.github.infoadmstudio2020-cyber:NativeServiceSDK:1.0.1'
-    implementation 'com.github.com.roni.library.logger:native-storage-engine:1.0.1'
+    implementation 'com.github.infoadmstudio2020-cyber:native-storage-engine:1.0.0'
+    implementation 'com.github.com.roni.library.logger:native-analytics-engine:1.0.2'
 }
 ```
 
 ### 3. ProGuard / R8 Rules (`consumer-rules.pro`)
 Consumer rules are automatically included in the AAR:
 ```proguard
--keep public class com.roni.library.storage.** { public *; }
--keep interface com.roni.library.storage.** { *; }
--keep class com.roni.library.storage.database.** { *; }
--keep class com.roni.library.storage.preferences.** { *; }
--keep class com.roni.library.storage.crypto.** { *; }
--keep class com.roni.library.storage.handler.** { *; }
--keep class com.roni.library.storage.service.** { *; }
--keep class com.roni.library.storage.NativeStorageEngineResult { *; }
--keep class com.roni.library.storage.NativeStorageEngineConfig { *; }
+-keep public class com.roni.library.analytics.** { public *; }
 ```
 
 ---
@@ -100,46 +95,45 @@ Consumer rules are automatically included in the AAR:
 
 ### Initialization
 ```java
-NativeStorageEngineConfig config = new NativeStorageEngineConfig.Builder()
+NativeAnalyticsEngineConfig config = NativeAnalyticsEngineConfig.builder()
         .debugEnabled(BuildConfig.DEBUG)
-        .tag("StorageEngine")
-        .encryptionPassword("SecureAppPassword2026!")
+        .tag("AnalyticsEngine")
+        .batchIntervalMs(5000)
+        .batchSizeThreshold(20)
+        .maxQueueSize(1000)
+        .diskBufferingEnabled(true)
         .build();
 
-NativeStorageEngineResult<Boolean> result = NativeStorageEngine.getInstance().init(context, config);
+NativeAnalyticsEngineResult<Boolean> result = NativeAnalyticsEngine.getInstance().init(context, config);
 ```
 
-### Encrypted Preferences
+### Track Events
 ```java
-EncryptedPreferences prefs = NativeStorageEngine.getInstance().getPreferences("secure_user_prefs");
-prefs.putString("auth_token", "jwt_token_header_payload_signature");
-prefs.putInt("user_id", 10042);
+Map<String, Object> params = new HashMap<>();
+params.put("item_id", "prod_99");
+params.put("category", "shoes");
 
-String token = prefs.getString("auth_token", null);
+NativeAnalyticsEngine.getInstance().trackEvent("view_item", params);
 ```
 
-### Document Store (NoSQL)
+### Performance Metrics & Tracing
 ```java
-StorageCollection users = NativeStorageEngine.getInstance().getDatabase().getCollection("users");
+// Performance Traces
+NativeAnalyticsEngine.getInstance().getPerformanceTracker().startTrace("load_feed");
+// ... load feed operation ...
+long durationMs = NativeAnalyticsEngine.getInstance().getPerformanceTracker().stopTrace("load_feed");
 
-// Insert
-Document doc = new Document("user_42")
-        .put("username", "alex_hunter")
-        .put("role", "admin")
-        .put("score", 95.8);
-users.insert(doc);
-
-// Query
-Document retrieved = users.findById("user_42");
-List<Document> admins = users.find(QueryFilter.eq("role", "admin"));
+// Record Custom Metric
+NativeAnalyticsEngine.getInstance().recordMetric("render_fps", 59.8, "fps");
 ```
 
-### LRU Disk Cache
+### Session Lifecycle
 ```java
-LruDiskCache cache = NativeStorageEngine.getInstance().getDiskCache();
-cache.put("avatar_42", imageByteArray);
-
-byte[] cachedImage = cache.get("avatar_42");
+SessionTracker tracker = NativeAnalyticsEngine.getInstance().getSessionTracker();
+tracker.startSession();
+tracker.startScreenView("HomeActivity");
+// ... user navigates ...
+tracker.endScreenView("HomeActivity");
 ```
 
 ---
@@ -147,10 +141,9 @@ byte[] cachedImage = cache.get("avatar_42");
 ## Interactive Companion Demo App
 
 The companion demonstration app in `:app` includes:
-- **Engine Dashboard:** Live status, active storage directory, cache size metrics.
-- **Feature Explorer:** Live forms to test Encrypted Preferences, Document Database, LRU Cache, and KeyValueStore.
-- **Integration Test Center:** One-click execution of 6 automated integration tests with instant PASS/FAIL reporting.
-- **Runtime Console:** Real-time scrolling telemetry log with clear and copy capabilities.
+- **Engine Dashboard:** Live status, active session ID, batch queue stats.
+- **Analytics Controls:** Interactive buttons to trigger events, metrics, performance traces, and flush telemetry.
+- **Runtime Telemetry Log:** Real-time console log showing telemetry dispatches.
 
 ---
 
@@ -158,12 +151,12 @@ The companion demonstration app in `:app` includes:
 
 Run JVM Unit Tests:
 ```bash
-./gradlew :native-storage-engine:test
+./gradlew :native-analytics-engine:test
 ```
 
 Build Release Artifacts:
 ```bash
-./gradlew clean :native-storage-engine:assembleRelease :app:assembleRelease
+./gradlew clean :native-analytics-engine:assembleRelease :app:assembleRelease
 ```
 
 ---

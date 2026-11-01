@@ -2,6 +2,7 @@ package com.roni.library.analytics;
 
 import com.roni.library.analytics.handler.AnalyticsCommandHandler;
 import com.roni.library.analytics.provider.CompositeAnalyticsProvider;
+import com.roni.library.analytics.provider.DiskBufferAnalyticsProvider;
 import com.roni.library.analytics.provider.MemoryAnalyticsProvider;
 import com.roni.library.analytics.service.NativeAnalyticsService;
 import com.roni.library.analytics.tracker.PerformanceTracker;
@@ -386,6 +387,28 @@ public class NativeAnalyticsEngineTest {
         NativeApiRequest reqUnknown = new NativeApiRequest("req_err", "analytics", "unknownAction", null, System.currentTimeMillis());
         NativeApiResponse respUnknown = handler.handleRequest(reqUnknown);
         assertFalse(respUnknown.isSuccess());
+    }
+
+    @Test
+    public void testDiskBufferAnalyticsProvider() {
+        DiskBufferAnalyticsProvider provider = new DiskBufferAnalyticsProvider(null);
+        provider.initialize();
+
+        AnalyticsEvent event = new AnalyticsEvent("disk_buffered_event");
+        provider.trackEvent(event);
+        assertFalse(provider.getBufferedEvents().isEmpty());
+
+        PerformanceMetric metric = new PerformanceMetric("disk_write_latency", 12.4, "ms");
+        provider.recordMetric(metric);
+        assertFalse(provider.getBufferedMetrics().isEmpty());
+
+        provider.setUserId("user_disk_99");
+        provider.setUserProperty("tier", "enterprise");
+
+        provider.flush();
+        provider.clear();
+        assertTrue(provider.getBufferedEvents().isEmpty());
+        assertTrue(provider.getBufferedMetrics().isEmpty());
     }
 
     @Test

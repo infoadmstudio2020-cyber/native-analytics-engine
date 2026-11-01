@@ -11,7 +11,7 @@ android {
         minSdk 21
         targetSdk 34
         versionCode 1
-        versionName "1.0.0"
+        versionName "1.0.2"
         consumerProguardFiles "consumer-rules.pro"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -48,7 +48,7 @@ dependencies {
     api 'com.github.infoadmstudio2020-cyber:NativeRuntimeContracts:v1.0.1'
     implementation 'com.github.infoadmstudio2020-cyber:NativeServiceSDK:1.0.1'
     testImplementation 'com.github.infoadmstudio2020-cyber:NativeLoggerSDK:1.0.1'
-    implementation 'com.github.com.roni.library.logger:native-storage-engine:1.0.0'
+    implementation 'com.github.infoadmstudio2020-cyber:native-storage-engine:1.0.0'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
@@ -62,7 +62,7 @@ afterEvaluate {
                 from components.findByName('release') ?: components.findByName('java') ?: components.findByName('default')
                 groupId    = 'com.roni.library.analytics'
                 artifactId = 'native-analytics-engine'
-                version    = '1.0.0'
+                version    = '1.0.2'
 
                 pom {
                     name        = 'NativeAnalyticsEngine'

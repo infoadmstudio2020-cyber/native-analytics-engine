@@ -1,8 +1,8 @@
 #!/bin/bash
-# Build script for NativeStorageEngine
+# Build script for NativeAnalyticsEngine
 set -e
 
-echo "Building NativeStorageEngine v1.0.1..."
+echo "Building NativeAnalyticsEngine v1.0.2..."
 chmod +x gradlew
-./gradlew clean :java-library:assembleRelease 2>/dev/null || ./gradlew clean assembleRelease || ./gradlew clean build
-echo "Build complete: build/outputs/aar/"
+./gradlew clean :native-analytics-engine:assembleRelease :app:assembleRelease --stacktrace || ./gradlew clean assembleRelease || ./gradlew clean build
+echo "Build complete: native-analytics-engine/build/outputs/aar/"

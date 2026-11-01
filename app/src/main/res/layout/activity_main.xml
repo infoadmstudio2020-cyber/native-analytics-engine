@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FA"
+    android:background="#0F172A"
     android:fillViewport="true">
 
     <LinearLayout
@@ -11,31 +11,31 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Header / Dashboard -->
+        <!-- Title & Version Header -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="NativeStorageEngine Explorer"
+            android:text="NativeAnalyticsEngine Explorer"
             android:textSize="22sp"
             android:textStyle="bold"
-            android:textColor="#1E293B" />
+            android:textColor="#F8FAFC" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="v1.0.1 • Layer 2 Domain Engine • Production Ready"
+            android:text="v1.0.2 • Layer 2 Domain Engine • Production Ready"
             android:textSize="12sp"
-            android:textColor="#64748B"
+            android:textColor="#94A3B8"
             android:paddingBottom="12dp" />
 
-        <!-- Status Dashboard Card -->
+        <!-- Engine Status Card -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="#FFFFFF"
-            android:padding="12dp"
-            android:layout_marginBottom="12dp">
+            android:background="#1E293B"
+            android:padding="14dp"
+            android:layout_marginBottom="14dp">
 
             <TextView
                 android:layout_width="match_parent"
@@ -43,7 +43,7 @@
                 android:text="ENGINE DASHBOARD"
                 android:textStyle="bold"
                 android:textSize="12sp"
-                android:textColor="#0284C7"
+                android:textColor="#38BDF8"
                 android:paddingBottom="4dp" />
 
             <TextView
@@ -51,318 +51,131 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Status: INITIALIZING..."
-                android:textSize="14sp"
-                android:textColor="#059669"
+                android:textSize="15sp"
+                android:textColor="#34D399"
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/tv_dashboard_details"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Subsystems: EncryptedStore • NoSQL DB • LRU Cache • KeyValueStore"
+                android:text="Subsystems: SessionTracker • PerformanceTracker • BatchUploader • DiskBuffer"
                 android:textSize="11sp"
-                android:textColor="#475569"
-                android:paddingTop="2dp" />
-        </LinearLayout>
-
-        <!-- Feature 1: Encrypted Preferences -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="#FFFFFF"
-            android:padding="12dp"
-            android:layout_marginBottom="12dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="1. ENCRYPTED PREFERENCES (AES-GCM)"
-                android:textStyle="bold"
-                android:textSize="13sp"
-                android:textColor="#1E293B" />
-
-            <EditText
-                android:id="@+id/et_pref_key"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Pref Key (e.g. auth_token)"
-                android:textSize="13sp"
-                android:text="auth_token" />
-
-            <EditText
-                android:id="@+id/et_pref_val"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Plain Value (e.g. secret_jwt_xyz)"
-                android:textSize="13sp"
-                android:text="sec_token_987654321" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingTop="4dp">
-
-                <Button
-                    android:id="@+id/btn_pref_save"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Encrypt &amp; Save"
-                    android:textSize="12sp" />
-
-                <Button
-                    android:id="@+id/btn_pref_read"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Read &amp; Decrypt"
-                    android:textSize="12sp" />
-
-                <Button
-                    android:id="@+id/btn_pref_clear"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Clear"
-                    android:textSize="12sp" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/tv_pref_result"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Result: Ready"
-                android:textSize="12sp"
-                android:textColor="#334155"
+                android:textColor="#94A3B8"
                 android:paddingTop="4dp" />
         </LinearLayout>
 
-        <!-- Feature 2: NoSQL Document Database -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="#FFFFFF"
-            android:padding="12dp"
-            android:layout_marginBottom="12dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="2. NOSQL DOCUMENT DATABASE"
-                android:textStyle="bold"
-                android:textSize="13sp"
-                android:textColor="#1E293B" />
-
-            <EditText
-                android:id="@+id/et_doc_id"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Document ID (e.g. user_101)"
-                android:textSize="13sp"
-                android:text="user_101" />
-
-            <EditText
-                android:id="@+id/et_doc_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Field 'name' (e.g. Alex Hunter)"
-                android:textSize="13sp"
-                android:text="Alex Hunter" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingTop="4dp">
-
-                <Button
-                    android:id="@+id/btn_doc_insert"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Insert Doc"
-                    android:textSize="12sp" />
-
-                <Button
-                    android:id="@+id/btn_doc_find"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Find By ID"
-                    android:textSize="12sp" />
-
-                <Button
-                    android:id="@+id/btn_doc_query"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Filter Query"
-                    android:textSize="12sp" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/tv_doc_result"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Result: Ready"
-                android:textSize="12sp"
-                android:textColor="#334155"
-                android:paddingTop="4dp" />
-        </LinearLayout>
-
-        <!-- Feature 3: LRU Disk Cache -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="#FFFFFF"
-            android:padding="12dp"
-            android:layout_marginBottom="12dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="3. LRU DISK CACHE"
-                android:textStyle="bold"
-                android:textSize="13sp"
-                android:textColor="#1E293B" />
-
-            <EditText
-                android:id="@+id/et_cache_key"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Cache Key (e.g. avatar_image)"
-                android:textSize="13sp"
-                android:text="avatar_thumb" />
-
-            <EditText
-                android:id="@+id/et_cache_val"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Payload Content"
-                android:textSize="13sp"
-                android:text="binary_stream_data_sample_010101" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingTop="4dp">
-
-                <Button
-                    android:id="@+id/btn_cache_put"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Put Cache"
-                    android:textSize="12sp" />
-
-                <Button
-                    android:id="@+id/btn_cache_get"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Get Cache"
-                    android:textSize="12sp" />
-
-                <Button
-                    android:id="@+id/btn_cache_clear"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Evict All"
-                    android:textSize="12sp" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/tv_cache_result"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Result: Ready"
-                android:textSize="12sp"
-                android:textColor="#334155"
-                android:paddingTop="4dp" />
-        </LinearLayout>
-
-        <!-- Feature 4: Integration Test Center -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="#FFFFFF"
-            android:padding="12dp"
-            android:layout_marginBottom="12dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="INTEGRATION TEST CENTER"
-                android:textStyle="bold"
-                android:textSize="13sp"
-                android:textColor="#B91C1C" />
-
-            <Button
-                android:id="@+id/btn_run_tests"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Run All Live Engine Tests"
-                android:backgroundTint="#B91C1C"
-                android:textColor="#FFFFFF" />
-
-            <TextView
-                android:id="@+id/tv_test_summary"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Tests Not Executed Yet."
-                android:textSize="12sp"
-                android:fontFamily="monospace"
-                android:paddingTop="6dp" />
-        </LinearLayout>
-
-        <!-- Runtime Console Log -->
+        <!-- Control Action Buttons Card -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:background="#1E293B"
-            android:padding="12dp">
+            android:padding="14dp"
+            android:layout_marginBottom="14dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="ANALYTICS CONTROLS"
+                android:textStyle="bold"
+                android:textSize="12sp"
+                android:textColor="#38BDF8"
+                android:paddingBottom="8dp" />
+
+            <Button
+                android:id="@+id/btn_init"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Initialize Engine"
+                android:textSize="13sp"
+                android:layout_marginBottom="6dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:layout_marginBottom="6dp">
 
-                <TextView
+                <Button
+                    android:id="@+id/btn_track_event"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="RUNTIME CONSOLE LOG"
-                    android:textColor="#38BDF8"
-                    android:textStyle="bold"
-                    android:textSize="12sp" />
+                    android:text="Track Event"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="4dp" />
 
                 <Button
-                    android:id="@+id/btn_clear_log"
-                    android:layout_width="wrap_content"
+                    android:id="@+id/btn_record_metric"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Clear Log"
-                    android:textSize="11sp" />
+                    android:layout_weight="1"
+                    android:text="Record Metric"
+                    android:textSize="12sp"
+                    android:layout_marginStart="4dp" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/tv_console_log"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="180dp"
-                android:background="#0F172A"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="6dp">
+
+                <Button
+                    android:id="@+id/btn_trace"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Run Trace Test"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="4dp" />
+
+                <Button
+                    android:id="@+id/btn_session"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Toggle Session"
+                    android:textSize="12sp"
+                    android:layout_marginStart="4dp" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btn_flush"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Flush Telemetry"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Runtime Event Log Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#1E293B"
+            android:padding="14dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="RUNTIME TELEMETRY LOG"
+                android:textColor="#38BDF8"
+                android:textStyle="bold"
+                android:textSize="12sp"
+                android:paddingBottom="6dp" />
+
+            <TextView
+                android:id="@+id/tv_log"
+                android:layout_width="match_parent"
+                android:layout_height="220dp"
+                android:background="#020617"
                 android:textColor="#E2E8F0"
                 android:fontFamily="monospace"
                 android:textSize="11sp"
-                android:padding="8dp"
+                android:padding="10dp"
                 android:scrollbars="vertical"
-                android:text="[Console Ready] Waiting for user actions...\n" />
+                android:text="[Console Ready] Waiting for telemetry events...\n" />
         </LinearLayout>
 
     </LinearLayout>

@@ -1,20 +1,21 @@
 # Changelog
 
-All notable changes to NativeStorageEngine are documented here.
+All notable changes to NativeAnalyticsEngine are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com).
 
-## [1.0.1] — 2026-10-31
+## [1.0.2] — 2026-11-01
+
+### Changed
+- Decoupled internal storage implementation: completely removed duplicate `native-storage-engine` code and packages from the Analytics project.
+- Integrated independent `NativeStorageEngine` via official Gradle dependency (`com.github.infoadmstudio2020-cyber:native-storage-engine:1.0.0`).
+- Updated companion demo application in `:app` to demonstrate `NativeAnalyticsEngine` live features.
+- Configured clean multi-module build targets: `:native-analytics-engine` (library) and `:app` (demo application).
 
 ### Added
-- Initial production-ready release of NativeStorageEngine (Layer 2 Domain Engine).
-- AES-GCM Encrypted Preferences Store (`EncryptedStore` / `EncryptedPreferences`).
-- NoSQL Document Store with Query Filters and batch transactional commits (`StorageDatabase`, `StorageCollection`, `Document`, `QueryFilter`).
-- Size-bounded LRU Disk Cache with automatic least-recently-used eviction (`LruDiskCache`).
-- Persistent concurrent Key-Value Store (`KeyValueStore`).
-- Database helper facade (`DatabaseHelper`).
-- Standardized RPC command handler (`StorageCommandHandler`).
-- Universal interactive companion demonstration application with Dashboard, Feature Explorer, Test Center, and Live Console.
-- Comprehensive JVM unit test suite (`StorageEngineTest`).
-- Strict ProGuard / R8 consumer preservation rules in `consumer-rules.pro`.
-- Automated GitHub Actions CI and Release pipelines.
-- JitPack cloud build and Maven publishing configurations.
+- Complete event tracking engine with bounded thread-safe `EventQueue` and periodic `BatchUploader`.
+- User session lifecycle tracking (`SessionTracker`).
+- High-resolution performance metric tracing (`PerformanceTracker`).
+- Zero-loss offline persistence buffering (`DiskBufferAnalyticsProvider`) using external `NativeStorageEngine`.
+- Pluggable telemetry dispatching architecture (`CompositeAnalyticsProvider`, `TelemetryDispatcher`).
+- Standardized RPC command handler for Layer 3 transport bridge (`AnalyticsCommandHandler`).
+- Comprehensive JVM unit test suite (`NativeAnalyticsEngineTest`).

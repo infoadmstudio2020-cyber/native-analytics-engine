@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for NativeStorageEngine
+about: Suggest an idea for NativeRuntimeSDK
 title: '[FEAT] '
 labels: enhancement
 assignees: ''

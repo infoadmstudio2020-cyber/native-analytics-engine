@@ -15,6 +15,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = 'NativeStorageEngine'
-include ':native-storage-engine'
+rootProject.name = 'NativeAnalyticsEngine'
+include ':native-analytics-engine'
 include ':app'

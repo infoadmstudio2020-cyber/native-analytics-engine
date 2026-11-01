@@ -2,7 +2,7 @@
 # Publish script — tags release for JitPack
 set -e
 
-VERSION=${1:-1.0.1}
+VERSION=${1:-1.0.2}
 echo "Tagging release v$VERSION for JitPack..."
 git tag -a "v$VERSION" -m "Release v$VERSION"
 git push origin "v$VERSION"
