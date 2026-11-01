@@ -3,11 +3,11 @@
 All notable changes to **NativeAnalyticsEngine** are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com).
 
-## [1.0.5] — 2026-11-02
+## [1.0.6] — 2026-11-02
 
 ### Added
 - **Core Engine**: Full production implementation of `NativeAnalyticsEngine` and `AnalyticsEngine` singleton facades.
-- **Ecosystem Integration**: Direct integration with `NativeRuntimeContracts:v1.0.2`, `NativeServiceSDK:v1.0.1`, and `native-storage-engine:v1.0.5`.
+- **Ecosystem Integration**: Direct integration with `NativeRuntimeContracts:v1.0.2`, `NativeServiceSDK:v1.0.1`, and `native-storage-engine:v1.0.6`.
 - **Offline Persistence**: Implemented `EventQueue` and `DiskBufferAnalyticsProvider` powered by `StorageDatabase` and `StorageCollection` for zero-loss offline telemetry queueing.
 - **Provider System**: Added `CompositeAnalyticsProvider` and `MemoryAnalyticsProvider` for multiplexed and in-memory event capture.
 - **Performance Tracing**: Added `PerformanceTracker` with support for high-resolution custom traces, WebBridge RPC latency tracking, first-paint timings, and HTTP response duration metrics.

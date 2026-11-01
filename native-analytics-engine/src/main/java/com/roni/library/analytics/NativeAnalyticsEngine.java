@@ -234,29 +234,32 @@ public class NativeAnalyticsEngine {
         return analyticsService.getEventQueue();
     }
 
-    /**
-     * Release all resources, timers, and stop services.
-     * After release, a subsequent call to {@link #getInstance()} returns a clean instance.
-     */
+
     public synchronized void release() {
+
         if (analyticsService != null) {
             try {
                 analyticsService.stop();
                 analyticsService.dispose();
             } catch (Throwable ignored) {
+                // Prevent cleanup failure from blocking release.
             }
             analyticsService = null;
         }
+
         commandHandler = null;
         config = null;
         context = null;
+
         initialized.set(false);
-        runtimeState = RuntimeState.DISPOSED;
+
+        runtimeState = RuntimeState.TERMINATED;
 
         synchronized (INSTANCE_LOCK) {
             sInstance = null;
         }
     }
+
 
     private void checkInitialized() {
         if (!initialized.get() || analyticsService == null) {

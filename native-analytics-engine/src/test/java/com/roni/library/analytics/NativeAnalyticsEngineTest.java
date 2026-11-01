@@ -124,7 +124,7 @@ public class NativeAnalyticsEngineTest {
 
         engine.release();
         assertFalse(engine.isInitialized());
-        assertEquals(RuntimeState.DISPOSED, engine.getRuntimeState());
+        assertEquals(RuntimeState.TERMINATED, engine.getRuntimeState());
 
         // Subsequent getInstance returns clean instance
         NativeAnalyticsEngine newEngine = NativeAnalyticsEngine.getInstance();
@@ -232,29 +232,73 @@ public class NativeAnalyticsEngineTest {
     // 4. Offline EventQueue & Disk Persistence
     // =========================================================================
 
+
     @Test
     public void testEventQueuePersistenceAndDequeue() {
         EventQueue queue = new EventQueue(tempDir);
-        assertEquals(0, queue.count());
 
+        assertEquals("Queue should initially be empty", 0, queue.count());
+
+        // Enqueue 25 events in a known FIFO order.
         for (int i = 0; i < 25; i++) {
-            Map<String, Object> p = new HashMap<>();
-            p.put("index", i);
-            queue.enqueue(new AnalyticsEvent("batch_item_" + i, p));
+            Map<String, Object> params = new HashMap<>();
+            params.put("index", i);
+
+            AnalyticsEvent event =
+                    new AnalyticsEvent("batch_item_" + i, params);
+
+            queue.enqueue(event);
         }
 
-        assertTrue("Queue count should reflect enqueued items", queue.count() >= 25);
+        assertEquals(
+                "Queue should contain exactly 25 events",
+                25,
+                queue.count()
+        );
 
+        // Verify peek does not remove events.
         List<AnalyticsEvent> peeked = queue.peek(5);
+
         assertEquals(5, peeked.size());
+        assertEquals("batch_item_0", peeked.get(0).getName());
+        assertEquals("batch_item_1", peeked.get(1).getName());
+        assertEquals("batch_item_2", peeked.get(2).getName());
 
+        assertEquals(
+                "Peek must not remove events",
+                25,
+                queue.count()
+        );
+
+        // First FIFO dequeue.
         List<AnalyticsEvent> batch1 = queue.dequeue(10);
-        assertEquals(10, batch1.size());
-        assertEquals("batch_item_0", batch1.get(0).getName());
 
+        assertEquals(10, batch1.size());
+
+        for (int i = 0; i < 10; i++) {
+            assertEquals(
+                    "Incorrect FIFO event at batch1 index " + i,
+                    "batch_item_" + i,
+                    batch1.get(i).getName()
+            );
+        }
+
+        assertEquals(15, queue.count());
+
+        // Second FIFO dequeue.
         List<AnalyticsEvent> batch2 = queue.dequeue(20);
+
         assertEquals(15, batch2.size());
-        assertEquals(0, queue.count());
+
+        for (int i = 0; i < 15; i++) {
+            assertEquals(
+                    "Incorrect FIFO event at batch2 index " + i,
+                    "batch_item_" + (i + 10),
+                    batch2.get(i).getName()
+            );
+        }
+
+        assertEquals("Queue should be empty after dequeue", 0, queue.count());
     }
 
     @Test
@@ -382,73 +426,118 @@ public class NativeAnalyticsEngineTest {
     // 8. AnalyticsCommandHandler (RPC Integration)
     // =========================================================================
 
+
     @Test
     public void testCommandHandlerActions() {
-        NativeAnalyticsEngineConfig config = new NativeAnalyticsEngineConfig.Builder()
-                .storageDirectory(tempDir)
-                .build();
-        NativeAnalyticsService service = new NativeAnalyticsService(null, config);
+
+        NativeAnalyticsEngineConfig config =
+                new NativeAnalyticsEngineConfig.Builder()
+                        .storageDirectory(tempDir)
+                        .build();
+
+        NativeAnalyticsService service =
+                new NativeAnalyticsService(null, config);
+
         service.initialize();
         service.start();
 
-        AnalyticsCommandHandler handler = new AnalyticsCommandHandler(service);
+        AnalyticsCommandHandler handler =
+                new AnalyticsCommandHandler(service);
+
         assertEquals("analytics", handler.getRoutePrefix());
         assertEquals("analytics", handler.getPath());
         assertEquals("*", handler.getAction());
 
         // 1. trackEvent RPC
-        NativeApiRequest trackReq = new NativeApiRequest.Builder()
-                .action("trackEvent")
-                .parameter("name", "rpc_event")
-                .parameter("parameters", Collections.singletonMap("source", "webview"))
-                .build();
-        NativeApiResponse trackResp = handler.handleRequest(trackReq);
+        NativeApiRequest trackReq =
+                new NativeApiRequest.Builder()
+                        .action("trackEvent")
+                        .param("name", "rpc_event")
+                        .param(
+                                "parameters",
+                                Collections.singletonMap("source", "webview")
+                        )
+                        .build();
+
+        NativeApiResponse trackResp =
+                handler.handleRequest(trackReq);
+
         assertTrue(trackResp.isSuccess());
 
         // 2. recordMetric RPC
-        NativeApiRequest metricReq = new NativeApiRequest.Builder()
-                .action("recordMetric")
-                .parameter("name", "rpc_latency")
-                .parameter("value", 34.5)
-                .parameter("unit", "ms")
-                .build();
-        NativeApiResponse metricResp = handler.handleRequest(metricReq);
+        NativeApiRequest metricReq =
+                new NativeApiRequest.Builder()
+                        .action("recordMetric")
+                        .param("name", "rpc_latency")
+                        .param("value", 34.5)
+                        .param("unit", "ms")
+                        .build();
+
+        NativeApiResponse metricResp =
+                handler.handleRequest(metricReq);
+
         assertTrue(metricResp.isSuccess());
 
-        // 3. startTrace & stopTrace RPC
-        NativeApiRequest startTraceReq = new NativeApiRequest.Builder()
-                .action("startTrace")
-                .parameter("name", "rpc_trace")
-                .build();
-        assertTrue(handler.handleRequest(startTraceReq).isSuccess());
+        // 3. startTrace RPC
+        NativeApiRequest startTraceReq =
+                new NativeApiRequest.Builder()
+                        .action("startTrace")
+                        .param("name", "rpc_trace")
+                        .build();
 
-        NativeApiRequest stopTraceReq = new NativeApiRequest.Builder()
-                .action("stopTrace")
-                .parameter("name", "rpc_trace")
-                .build();
-        NativeApiResponse stopTraceResp = handler.handleRequest(stopTraceReq);
+        NativeApiResponse startTraceResp =
+                handler.handleRequest(startTraceReq);
+
+        assertTrue(startTraceResp.isSuccess());
+
+        // 4. stopTrace RPC
+        NativeApiRequest stopTraceReq =
+                new NativeApiRequest.Builder()
+                        .action("stopTrace")
+                        .param("name", "rpc_trace")
+                        .build();
+
+        NativeApiResponse stopTraceResp =
+                handler.handleRequest(stopTraceReq);
+
         assertTrue(stopTraceResp.isSuccess());
-        assertNotNull(stopTraceResp.getData().get("durationMs"));
 
-        // 4. getStats RPC
-        NativeApiRequest statsReq = new NativeApiRequest.Builder()
-                .action("getStats")
-                .build();
-        NativeApiResponse statsResp = handler.handleRequest(statsReq);
+        assertNotNull(
+                stopTraceResp.getData().get("durationMs")
+        );
+
+        // 5. getStats RPC
+        NativeApiRequest statsReq =
+                new NativeApiRequest.Builder()
+                        .action("getStats")
+                        .build();
+
+        NativeApiResponse statsResp =
+                handler.handleRequest(statsReq);
+
         assertTrue(statsResp.isSuccess());
-        assertNotNull(statsResp.getData().get("sessionId"));
 
-        // 5. Invalid action RPC
-        NativeApiRequest invalidReq = new NativeApiRequest.Builder()
-                .action("non_existent_action")
-                .build();
-        NativeApiResponse invalidResp = handler.handleRequest(invalidReq);
+        assertNotNull(
+                statsResp.getData().get("sessionId")
+        );
+
+        // 6. Invalid action RPC
+        NativeApiRequest invalidReq =
+                new NativeApiRequest.Builder()
+                        .action("non_existent_action")
+                        .build();
+
+        NativeApiResponse invalidResp =
+                handler.handleRequest(invalidReq);
+
         assertFalse(invalidResp.isSuccess());
         assertEquals(404, invalidResp.getStatusCode());
 
-        // 6. Async callback handler test
+        // 7. Async callback handler test
         AtomicBoolean callbackCalled = new AtomicBoolean(false);
+
         handler.handle(trackReq, new IApiCallback() {
+
             @Override
             public void onResponse(NativeApiResponse response) {
                 callbackCalled.set(true);
@@ -456,11 +545,43 @@ public class NativeAnalyticsEngineTest {
 
             @Override
             public void onError(NativeApiError error) {
-                fail("Should not trigger error callback");
+                fail("Should not trigger error callback: " + error);
             }
         });
-        assertTrue(callbackCalled.get());
 
+        assertTrue(
+                "Success callback should be invoked",
+                callbackCalled.get()
+        );
+
+        // 8. Invalid parameter test
+        NativeApiRequest invalidEventReq =
+                new NativeApiRequest.Builder()
+                        .action("trackEvent")
+                        .param("name", "")
+                        .build();
+
+        NativeApiResponse invalidEventResp =
+                handler.handleRequest(invalidEventReq);
+
+        assertFalse(invalidEventResp.isSuccess());
+        assertEquals(400, invalidEventResp.getStatusCode());
+
+        // 9. Invalid metric value test
+        NativeApiRequest invalidMetricReq =
+                new NativeApiRequest.Builder()
+                        .action("recordMetric")
+                        .param("name", "invalid_metric")
+                        .param("value", "not_a_number")
+                        .build();
+
+        NativeApiResponse invalidMetricResp =
+                handler.handleRequest(invalidMetricReq);
+
+        assertFalse(invalidMetricResp.isSuccess());
+        assertEquals(400, invalidMetricResp.getStatusCode());
+
+        // Cleanup
         service.stop();
         service.dispose();
     }

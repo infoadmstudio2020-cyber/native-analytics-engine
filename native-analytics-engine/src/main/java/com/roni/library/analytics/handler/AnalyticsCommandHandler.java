@@ -1,32 +1,43 @@
+
 package com.roni.library.analytics.handler;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.roni.library.analytics.service.NativeAnalyticsService;
-import com.roni.library.contracts.analytics.AnalyticsEvent;
 import com.roni.library.contracts.api.IApiCallback;
 import com.roni.library.contracts.api.IApiHandler;
 import com.roni.library.contracts.api.NativeApiError;
 import com.roni.library.contracts.api.NativeApiRequest;
 import com.roni.library.contracts.api.NativeApiResponse;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * RPC Command Handler for NativeAnalyticsEngine.
- * Implements {@link IApiHandler} to allow Layer 3 WebBridge and external clients
- * to invoke analytics capabilities via structured API requests.
+ *
+ * Implements IApiHandler to allow Layer 3 WebBridge
+ * and external clients to invoke analytics capabilities
+ * via structured API requests.
  *
  * @author infoadmstudio2020-cyber
  */
 public class AnalyticsCommandHandler implements IApiHandler {
 
     public static final String ROUTE_PREFIX = "analytics";
+
     private final NativeAnalyticsService analyticsService;
 
-    public AnalyticsCommandHandler(@NonNull NativeAnalyticsService analyticsService) {
+    public AnalyticsCommandHandler(
+            @NonNull NativeAnalyticsService analyticsService) {
+
+        if (analyticsService == null) {
+            throw new IllegalArgumentException(
+                    "NativeAnalyticsService cannot be null"
+            );
+        }
+
         this.analyticsService = analyticsService;
     }
 
@@ -49,176 +60,441 @@ public class AnalyticsCommandHandler implements IApiHandler {
 
     @NonNull
     @Override
-    public NativeApiResponse handleRequest(@NonNull NativeApiRequest request) {
+    public NativeApiResponse handleRequest(
+            @NonNull NativeApiRequest request) {
+
         if (request == null) {
-            NativeApiError err = new NativeApiError("INVALID_REQUEST", "Request cannot be null");
-            return NativeApiResponse.error("unknown", 400, err);
+            return error(
+                    "unknown",
+                    400,
+                    "INVALID_REQUEST",
+                    "Request cannot be null"
+            );
         }
 
+        String requestId = request.getRequestId();
         String action = request.getAction();
-        String requestId = request.getRequestId() != null ? request.getRequestId() : "req_" + System.currentTimeMillis();
 
         if (action == null || action.trim().isEmpty()) {
-            NativeApiError err = new NativeApiError("MISSING_ACTION", "Action must be specified");
-            return NativeApiResponse.error(requestId, 400, err);
+            return error(
+                    requestId,
+                    400,
+                    "MISSING_ACTION",
+                    "Action must be specified"
+            );
         }
 
         try {
             switch (action) {
+
                 case "trackEvent": {
-                    String eventName = request.getStringParam("name");
-                    if (eventName == null || eventName.trim().isEmpty()) {
-                        NativeApiError err = new NativeApiError("INVALID_PARAM", "Parameter 'name' is required");
-                        return NativeApiResponse.error(requestId, 400, err);
+
+                    String eventName =
+                            request.getStringParam("name", "");
+
+                    if (eventName.trim().isEmpty()) {
+                        return error(
+                                requestId,
+                                400,
+                                "INVALID_PARAM",
+                                "Parameter 'name' is required"
+                        );
                     }
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> params = (Map<String, Object>) request.getParameter("parameters");
-                    analyticsService.trackEvent(eventName, params);
+
+                    Object paramsObject =
+                            request.getParameter("parameters");
+
+                    Map<String, Object> params = null;
+
+                    if (paramsObject instanceof Map) {
+                        params = new HashMap<>();
+
+                        Map<?, ?> source =
+                                (Map<?, ?>) paramsObject;
+
+                        for (Map.Entry<?, ?> entry :
+                                source.entrySet()) {
+
+                            if (entry.getKey() instanceof String) {
+                                params.put(
+                                        (String) entry.getKey(),
+                                        entry.getValue()
+                                );
+                            }
+                        }
+                    }
+
+                    analyticsService.trackEvent(
+                            eventName.trim(),
+                            params
+                    );
 
                     Map<String, Object> data = new HashMap<>();
                     data.put("status", "queued");
-                    data.put("event", eventName);
-                    return NativeApiResponse.success(requestId, data);
+                    data.put("event", eventName.trim());
+
+                    return NativeApiResponse.success(
+                            requestId,
+                            data
+                    );
                 }
 
                 case "recordMetric": {
-                    String metricName = request.getStringParam("name");
-                    Object valObj = request.getParameter("value");
-                    String unit = request.getStringParam("unit");
-                    if (metricName == null || valObj == null) {
-                        NativeApiError err = new NativeApiError("INVALID_PARAM", "Parameters 'name' and 'value' are required");
-                        return NativeApiResponse.error(requestId, 400, err);
+
+                    String metricName =
+                            request.getStringParam("name", "");
+
+                    Object valObj =
+                            request.getParameter("value");
+
+                    String unit =
+                            request.getStringParam("unit", "count");
+
+                    if (metricName.trim().isEmpty()
+                            || !(valObj instanceof Number)) {
+
+                        return error(
+                                requestId,
+                                400,
+                                "INVALID_PARAM",
+                                "Valid 'name' and numeric 'value' are required"
+                        );
                     }
-                    double value = valObj instanceof Number ? ((Number) valObj).doubleValue() : Double.parseDouble(valObj.toString());
-                    analyticsService.recordMetric(metricName, value, unit != null ? unit : "count");
+
+                    double value =
+                            ((Number) valObj).doubleValue();
+
+                    if (Double.isNaN(value)
+                            || Double.isInfinite(value)) {
+
+                        return error(
+                                requestId,
+                                400,
+                                "INVALID_PARAM",
+                                "Metric value must be finite"
+                        );
+                    }
+
+                    analyticsService.recordMetric(
+                            metricName.trim(),
+                            value,
+                            unit
+                    );
 
                     Map<String, Object> data = new HashMap<>();
                     data.put("status", "recorded");
-                    data.put("metric", metricName);
-                    return NativeApiResponse.success(requestId, data);
+                    data.put("metric", metricName.trim());
+
+                    return NativeApiResponse.success(
+                            requestId,
+                            data
+                    );
                 }
 
                 case "startSession": {
-                    analyticsService.getSessionTracker().startSession();
+
+                    analyticsService.getSessionTracker()
+                            .startSession();
+
                     Map<String, Object> data = new HashMap<>();
-                    data.put("sessionId", analyticsService.getSessionTracker().getCurrentSessionId());
-                    data.put("startTime", analyticsService.getSessionTracker().getSessionStartTime());
-                    return NativeApiResponse.success(requestId, data);
+
+                    data.put(
+                            "sessionId",
+                            analyticsService.getSessionTracker()
+                                    .getCurrentSessionId()
+                    );
+
+                    data.put(
+                            "startTime",
+                            analyticsService.getSessionTracker()
+                                    .getSessionStartTime()
+                    );
+
+                    return NativeApiResponse.success(
+                            requestId,
+                            data
+                    );
                 }
 
                 case "endSession": {
-                    analyticsService.getSessionTracker().endSession();
+
+                    analyticsService.getSessionTracker()
+                            .endSession();
+
                     Map<String, Object> data = new HashMap<>();
+
                     data.put("status", "ended");
-                    data.put("activeDurationMs", analyticsService.getSessionTracker().getTotalActiveDurationMs());
-                    return NativeApiResponse.success(requestId, data);
+
+                    data.put(
+                            "activeDurationMs",
+                            analyticsService.getSessionTracker()
+                                    .getTotalActiveDurationMs()
+                    );
+
+                    return NativeApiResponse.success(
+                            requestId,
+                            data
+                    );
                 }
 
                 case "startTrace": {
-                    String traceName = request.getStringParam("name");
-                    if (traceName == null) {
-                        NativeApiError err = new NativeApiError("INVALID_PARAM", "Parameter 'name' is required");
-                        return NativeApiResponse.error(requestId, 400, err);
+
+                    String traceName =
+                            request.getStringParam("name", "");
+
+                    if (traceName.trim().isEmpty()) {
+                        return error(
+                                requestId,
+                                400,
+                                "INVALID_PARAM",
+                                "Parameter 'name' is required"
+                        );
                     }
-                    analyticsService.getPerformanceTracker().startTrace(traceName);
+
+                    analyticsService.getPerformanceTracker()
+                            .startTrace(traceName.trim());
+
                     Map<String, Object> data = new HashMap<>();
-                    data.put("trace", traceName);
+                    data.put("trace", traceName.trim());
                     data.put("status", "started");
-                    return NativeApiResponse.success(requestId, data);
+
+                    return NativeApiResponse.success(
+                            requestId,
+                            data
+                    );
                 }
 
                 case "stopTrace": {
-                    String traceName = request.getStringParam("name");
-                    if (traceName == null) {
-                        NativeApiError err = new NativeApiError("INVALID_PARAM", "Parameter 'name' is required");
-                        return NativeApiResponse.error(requestId, 400, err);
+
+                    String traceName =
+                            request.getStringParam("name", "");
+
+                    if (traceName.trim().isEmpty()) {
+                        return error(
+                                requestId,
+                                400,
+                                "INVALID_PARAM",
+                                "Parameter 'name' is required"
+                        );
                     }
-                    long duration = analyticsService.getPerformanceTracker().stopTrace(traceName);
+
+                    long duration =
+                            analyticsService.getPerformanceTracker()
+                                    .stopTrace(traceName.trim());
+
                     Map<String, Object> data = new HashMap<>();
-                    data.put("trace", traceName);
+                    data.put("trace", traceName.trim());
                     data.put("durationMs", duration);
-                    return NativeApiResponse.success(requestId, data);
+
+                    return NativeApiResponse.success(
+                            requestId,
+                            data
+                    );
                 }
 
                 case "startScreenView": {
-                    String screen = request.getStringParam("screenName");
-                    if (screen == null) {
-                        NativeApiError err = new NativeApiError("INVALID_PARAM", "Parameter 'screenName' is required");
-                        return NativeApiResponse.error(requestId, 400, err);
+
+                    String screen =
+                            request.getStringParam("screenName", "");
+
+                    if (screen.trim().isEmpty()) {
+                        return error(
+                                requestId,
+                                400,
+                                "INVALID_PARAM",
+                                "Parameter 'screenName' is required"
+                        );
                     }
-                    analyticsService.getSessionTracker().startScreenView(screen);
+
+                    analyticsService.getSessionTracker()
+                            .startScreenView(screen.trim());
+
                     Map<String, Object> data = new HashMap<>();
-                    data.put("screenName", screen);
-                    return NativeApiResponse.success(requestId, data);
+                    data.put("screenName", screen.trim());
+
+                    return NativeApiResponse.success(
+                            requestId,
+                            data
+                    );
                 }
 
                 case "endScreenView": {
-                    String screen = request.getStringParam("screenName");
-                    if (screen == null) {
-                        NativeApiError err = new NativeApiError("INVALID_PARAM", "Parameter 'screenName' is required");
-                        return NativeApiResponse.error(requestId, 400, err);
+
+                    String screen =
+                            request.getStringParam("screenName", "");
+
+                    if (screen.trim().isEmpty()) {
+                        return error(
+                                requestId,
+                                400,
+                                "INVALID_PARAM",
+                                "Parameter 'screenName' is required"
+                        );
                     }
-                    long duration = analyticsService.getSessionTracker().endScreenView(screen);
+
+                    long duration =
+                            analyticsService.getSessionTracker()
+                                    .endScreenView(screen.trim());
+
                     Map<String, Object> data = new HashMap<>();
-                    data.put("screenName", screen);
+                    data.put("screenName", screen.trim());
                     data.put("durationMs", duration);
-                    return NativeApiResponse.success(requestId, data);
+
+                    return NativeApiResponse.success(
+                            requestId,
+                            data
+                    );
                 }
 
                 case "getStats": {
+
                     Map<String, Object> stats = new HashMap<>();
-                    stats.put("sessionId", analyticsService.getSessionTracker().getCurrentSessionId());
-                    stats.put("sessionActive", analyticsService.getSessionTracker().isSessionActive());
-                    stats.put("totalActiveDurationMs", analyticsService.getSessionTracker().getTotalActiveDurationMs());
-                    stats.put("memoryEventCount", analyticsService.getDefaultMemoryProvider().getEventCount());
-                    stats.put("memoryMetricCount", analyticsService.getDefaultMemoryProvider().getMetricCount());
-                    stats.put("offlineQueueCount", analyticsService.getEventQueue().count());
-                    return NativeApiResponse.success(requestId, stats);
+
+                    stats.put(
+                            "sessionId",
+                            analyticsService.getSessionTracker()
+                                    .getCurrentSessionId()
+                    );
+
+                    stats.put(
+                            "sessionActive",
+                            analyticsService.getSessionTracker()
+                                    .isSessionActive()
+                    );
+
+                    stats.put(
+                            "totalActiveDurationMs",
+                            analyticsService.getSessionTracker()
+                                    .getTotalActiveDurationMs()
+                    );
+
+                    stats.put(
+                            "memoryEventCount",
+                            analyticsService.getDefaultMemoryProvider()
+                                    .getEventCount()
+                    );
+
+                    stats.put(
+                            "memoryMetricCount",
+                            analyticsService.getDefaultMemoryProvider()
+                                    .getMetricCount()
+                    );
+
+                    stats.put(
+                            "offlineQueueCount",
+                            analyticsService.getEventQueue().count()
+                    );
+
+                    return NativeApiResponse.success(
+                            requestId,
+                            stats
+                    );
                 }
 
                 case "flush": {
+
                     analyticsService.flush();
+
                     Map<String, Object> data = new HashMap<>();
                     data.put("status", "flushed");
-                    return NativeApiResponse.success(requestId, data);
+
+                    return NativeApiResponse.success(
+                            requestId,
+                            data
+                    );
                 }
 
                 case "clear": {
-                    analyticsService.getDefaultMemoryProvider().clear();
+
+                    analyticsService.getDefaultMemoryProvider()
+                            .clear();
+
                     analyticsService.getEventQueue().clear();
-                    analyticsService.getPerformanceTracker().clear();
+
+                    analyticsService.getPerformanceTracker()
+                            .clear();
+
                     Map<String, Object> data = new HashMap<>();
                     data.put("status", "cleared");
-                    return NativeApiResponse.success(requestId, data);
+
+                    return NativeApiResponse.success(
+                            requestId,
+                            data
+                    );
                 }
 
-                default: {
-                    NativeApiError err = new NativeApiError("UNKNOWN_ACTION", "Action '" + action + "' is not supported");
-                    return NativeApiResponse.error(requestId, 404, err);
-                }
+                default:
+
+                    return error(
+                            requestId,
+                            404,
+                            "UNKNOWN_ACTION",
+                            "Action '" + action
+                                    + "' is not supported"
+                    );
             }
-        } catch (Throwable t) {
-            NativeApiError err = new NativeApiError("EXECUTION_ERROR", t.getMessage());
-            return NativeApiResponse.error(requestId, 500, err);
+
+        } catch (Exception e) {
+
+            String message = e.getMessage();
+
+            return error(
+                    requestId,
+                    500,
+                    "EXECUTION_ERROR",
+                    message != null
+                            ? message
+                            : "Analytics command execution failed"
+            );
         }
     }
 
     /**
-     * Async callback-based invocation handler.
-     *
-     * @param request the incoming request
-     * @param callback callback to notify upon completion
+     * Creates a standardized API error response.
      */
-    public void handle(@NonNull NativeApiRequest request, @NonNull IApiCallback callback) {
-        if (callback == null) return;
+    @NonNull
+    private NativeApiResponse error(
+            @NonNull String requestId,
+            int statusCode,
+            @NonNull String errorCode,
+            @NonNull String message) {
+
+        return NativeApiResponse.error(
+                requestId,
+                statusCode,
+                new NativeApiError(errorCode, message)
+        );
+    }
+
+    /**
+     * Async callback-based invocation handler.
+     */
+    public void handle(
+            @NonNull NativeApiRequest request,
+            @NonNull IApiCallback callback) {
+
+        if (callback == null) {
+            return;
+        }
+
         NativeApiResponse response = handleRequest(request);
+
         if (response.isSuccess()) {
             callback.onResponse(response);
         } else {
-            NativeApiError error = response.getError() != null
-                    ? response.getError()
-                    : new NativeApiError("UNKNOWN_ERROR", "Unknown execution failure");
-            callback.onError(error);
+
+            NativeApiError error = response.getError();
+
+            if (error != null) {
+                callback.onError(error);
+            } else {
+                callback.onError(
+                        new NativeApiError(
+                                "UNKNOWN_ERROR",
+                                "Unknown execution failure"
+                        )
+                );
+            }
         }
     }
 

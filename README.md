@@ -3,7 +3,7 @@
 > **Architecture Layer:** Layer 2: Domain Engine Subsystems (`L2`)  
 > **Package:** `com.roni.library.analytics`  
 > **Target SDK:** API 21 - 34 • **Java Compatibility:** JDK 17  
-> **Maven Coordinates:** `com.github.infoadmstudio2020-cyber:native-analytics-engine:1.0.5`
+> **Maven Coordinates:** `com.github.infoadmstudio2020-cyber:native-analytics-engine:1.0.6`
 
 Event tracking, user session lifecycle metrics, high-resolution performance tracing, zero-loss offline SQLite/NoSQL event queue, and telemetry batching engine for the NativeRuntime ecosystem.
 
@@ -48,7 +48,7 @@ In your module's `build.gradle`:
 ```groovy
 dependencies {
     // 1. NativeAnalyticsEngine
-    implementation 'com.github.infoadmstudio2020-cyber:native-analytics-engine:1.0.5'
+    implementation 'com.github.infoadmstudio2020-cyber:native-analytics-engine:1.0.6'
 
     // 2. Transitive & Peer Foundation Dependencies
     api 'com.github.infoadmstudio2020-cyber:NativeRuntimeContracts:v1.0.2'
