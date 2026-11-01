@@ -4,10 +4,10 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.0.3 | ✅ |
+| Latest  | ✅        |
 
 ## Reporting a Vulnerability
 
-Please report security vulnerabilities by opening a GitHub issue.
-Include steps to reproduce and potential impact.
-We will respond within 72 hours.
+Please report security issues to the maintainer at https://github.com/infoadmstudio2020-cyber/native-analytics-engine/security/advisories/new.
+
+Do NOT open public issues for security vulnerabilities.

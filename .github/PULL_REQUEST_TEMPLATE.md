@@ -1,14 +1,21 @@
 ## Description
-<!-- Describe your changes -->
 
-## Type of change
+Please describe the changes in this PR.
+
+## Type of Change
+
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Breaking change
 - [ ] Documentation update
 
+## Testing
+
+Describe how the changes were tested.
+
 ## Checklist
-- [ ] I have added tests
-- [ ] All tests pass
-- [ ] I have updated the documentation
-- [ ] My code follows the project style
+
+- [ ] Code follows the project style
+- [ ] Self-review performed
+- [ ] Javadoc updated for public APIs
+- [ ] Tests added / updated

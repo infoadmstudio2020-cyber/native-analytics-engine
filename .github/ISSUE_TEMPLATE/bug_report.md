@@ -1,13 +1,13 @@
 ---
 name: Bug report
-about: Report a bug in NativeRuntimeSDK
+about: Create a report to help us improve NativeAnalyticsEngine
 title: '[BUG] '
 labels: bug
 assignees: ''
 ---
 
 **Describe the bug**
-A clear and concise description of the bug.
+A clear description of the bug.
 
 **To Reproduce**
 Steps to reproduce the behavior.
@@ -15,9 +15,9 @@ Steps to reproduce the behavior.
 **Expected behavior**
 What you expected to happen.
 
-**Environment**
-- Library version: 1.0.0
-- Android version:
-- Device:
+**Android version / API level:**
+
+**Library version:**
 
 **Additional context**
+Add any other context here.

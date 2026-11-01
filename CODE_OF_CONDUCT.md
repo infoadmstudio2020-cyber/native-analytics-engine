@@ -2,23 +2,18 @@
 
 ## Our Pledge
 
-We pledge to make participation in our project a harassment-free experience
-for everyone, regardless of age, body size, disability, ethnicity, gender identity,
-level of experience, nationality, personal appearance, race, religion, or sexual identity.
+We pledge to make participation in our project a harassment-free experience for everyone.
 
 ## Our Standards
 
-**Positive behavior:**
+Examples of positive behavior:
 - Using welcoming and inclusive language
 - Being respectful of differing viewpoints
 - Gracefully accepting constructive criticism
 - Focusing on what is best for the community
 
-**Unacceptable behavior:**
-- Harassment of any kind
-- Trolling, insulting or derogatory comments
-- Public or private harassment
-
 ## Enforcement
 
-Violations may be reported to the project maintainers.
+Instances of abusive behavior may be reported to the project maintainers.
+
+This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org), version 2.1.
