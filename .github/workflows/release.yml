@@ -1,3 +1,4 @@
+
 name: Release
 
 on:
@@ -5,14 +6,18 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -22,8 +27,6 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
@@ -35,25 +38,42 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Grant execute permission for gradlew
+      - name: Grant execute permission
         run: chmod +x gradlew
 
       - name: Build Release AAR
         run: |
-          ./gradlew clean :native-analytics-engine:assembleRelease --stacktrace || {
-            echo "Module task :native-analytics-engine:assembleRelease failed or not found. Checking available tasks..."
-            if ./gradlew tasks --all 2>/dev/null | grep -E "\bassembleRelease\b"; then
-              ./gradlew clean assembleRelease --stacktrace
-            else
-              ./gradlew clean build --stacktrace
-            fi
-          }
+          ./gradlew clean :native-analytics-engine:assembleRelease --stacktrace
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+      - name: Verify AAR output
+        id: aar
+        shell: bash
+        run: |
+          AAR_DIR="native-analytics-engine/build/outputs/aar"
+
+          if [ ! -d "$AAR_DIR" ]; then
+            echo "ERROR: AAR output directory not found: $AAR_DIR"
+            exit 1
+          fi
+
+          AAR_FILES=$(find "$AAR_DIR" -maxdepth 1 -type f -name "*.aar")
+
+          if [ -z "$AAR_FILES" ]; then
+            echo "ERROR: No AAR file generated."
+            exit 1
+          fi
+
+          echo "Generated AAR files:"
+          echo "$AAR_FILES"
+
+      - name: Create GitHub Release and Upload AAR
+        uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
+          name: Native Analytics Engine ${{ github.ref_name }}
           files: |
             native-analytics-engine/build/outputs/aar/*.aar
-            **/build/outputs/aar/*.aar
+          fail_on_unmatched_files: true
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
